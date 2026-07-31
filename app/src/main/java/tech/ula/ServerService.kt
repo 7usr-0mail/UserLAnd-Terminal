@@ -123,8 +123,21 @@ class ServerService : Service(), CoroutineScope {
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
         session.pid = localServerManager.startServer(session)
 
+        // Previously this loop had no exit condition. If the server binary was
+        // missing or failed to launch, the service waited forever and the UI sat
+        // on "Starting service" with no explanation. Bound the wait and report.
+        val timeoutMillis = 60_000L
+        val pollIntervalMillis = 500L
+        var waited = 0L
         while (!localServerManager.isServerRunning(session)) {
-            delay(500)
+            delay(pollIntervalMillis)
+            waited += pollIntervalMillis
+            if (waited >= timeoutMillis) {
+                sendDialogBroadcast("serverFailedToStart")
+                stopForeground(true)
+                stopSelf()
+                return
+            }
         }
 
         session.active = true

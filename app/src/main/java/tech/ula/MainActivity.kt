@@ -483,6 +483,11 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             "playStoreMissingForClient" ->
                 displayGenericErrorDialog(R.string.alert_need_client_app_title,
                     R.string.alert_need_client_app_message)
+            "serverFailedToStart" -> {
+                killProgressBar()
+                displayGenericErrorDialog(R.string.general_error_title,
+                        R.string.alert_server_failed_to_start)
+            }
         }
     }
 

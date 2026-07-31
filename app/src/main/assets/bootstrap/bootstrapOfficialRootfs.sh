@@ -154,6 +154,53 @@ setup_user() {
 }
 
 # ---------------------------------------------------------------------------
+# 4b. Install an SSH server from the distribution's OFFICIAL archive.
+#
+# UserLAnd connects its terminal to a local SSH server inside the filesystem.
+# UserLAnd's own prebuilt images ship dropbear already installed; the pristine
+# images published by Canonical/Debian/Alpine/Arch deliberately do not, so we
+# must install it on first boot or the session can never start.
+# ---------------------------------------------------------------------------
+install_ssh_server() {
+    # Already present (e.g. re-running bootstrap)? Nothing to do.
+    if command -v dropbear >/dev/null 2>&1; then
+        log "dropbear already present"
+        return 0
+    fi
+
+    log "Installing SSH server from the official archive (this takes a few minutes)"
+
+    case "$DISTRO" in
+        ubuntu|debian)
+            export DEBIAN_FRONTEND=noninteractive
+            apt-get update 2>&1 | tail -5
+            # dropbear-bin is the server; sudo makes the session usable.
+            apt-get install -y --no-install-recommends dropbear-bin sudo 2>&1 | tail -10
+            # Some releases only provide the metapackage name.
+            if ! command -v dropbear >/dev/null 2>&1; then
+                apt-get install -y --no-install-recommends dropbear 2>&1 | tail -10
+            fi
+            ;;
+        alpine)
+            apk update 2>&1 | tail -3
+            apk add --no-cache dropbear sudo 2>&1 | tail -5
+            ;;
+        arch)
+            pacman -Sy --noconfirm dropbear sudo 2>&1 | tail -10
+            ;;
+    esac
+
+    if command -v dropbear >/dev/null 2>&1; then
+        log "SSH server installed successfully"
+        return 0
+    fi
+
+    log "ERROR: could not install an SSH server."
+    log "The session cannot start without one. Check network connectivity."
+    return 1
+}
+
+# ---------------------------------------------------------------------------
 # 5. Environment defaults for every login shell.
 # ---------------------------------------------------------------------------
 setup_profile() {
@@ -178,6 +225,7 @@ setup_base_files
 setup_package_mirror
 setup_apt_for_proot
 setup_user
+install_ssh_server
 setup_profile
 
 # Service-manager shim (systemctl/service replacements) if it was staged.

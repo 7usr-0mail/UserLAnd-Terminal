@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Matrix palette. The inactive state previously used a mid grey (#9E9E9E)
+     which reads as muddy grey-green against the near-black surface and is
+     only legible at full screen brightness. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:state_checked="true" android:color="@android:color/white" />
-    <item android:state_pressed="true" android:state_enabled="true" android:color="@android:color/white" />
+    <item android:state_checked="true" android:color="@color/matrixGreen" />
+    <item android:state_pressed="true" android:state_enabled="true" android:color="@color/matrixGreen" />
     <item android:color="@color/InactiveBottomNavIconColor" />
 </selector>

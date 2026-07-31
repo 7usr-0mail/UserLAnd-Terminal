@@ -301,4 +301,7 @@
     <string name="android_shell_failed_title">Could not start shell</string>
     <string name="android_shell_failed_message">The Android shell could not be started on this device. This is usually caused by a restrictive vendor policy on executing /system/bin/sh.</string>
     <string name="illegal_state_session_filesystem_missing">This session points at a filesystem that no longer exists. Delete the session, or recreate the filesystem, and try again.</string>
+    <string name="alert_server_failed_to_start">The session server did not start within 60 seconds.
+
+This usually means the SSH server could not be installed into the filesystem on first boot. Check your internet connection and try starting the session again \u2014 the setup will resume where it left off.</string>
 </resources>
