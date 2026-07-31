@@ -23,6 +23,10 @@
         <item name="colorControlActivated">@color/matrixGreen</item>
         <item name="colorControlHighlight">@color/matrixGreenFaint</item>
         <item name="colorButtonNormal">@color/matrixSurfaceRaised</item>
+        <item name="buttonStyle">@style/MatrixButton</item>
+        <item name="android:buttonStyle">@style/MatrixButton</item>
+        <item name="buttonBarButtonStyle">@style/MatrixButtonSecondary</item>
+        <item name="android:buttonBarButtonStyle">@style/MatrixButtonSecondary</item>
 
         <item name="android:divider">@color/dividerColor</item>
         <item name="alertDialogTheme">@style/MatrixAlertDialog</item>
@@ -47,7 +51,28 @@
         <item name="colorAccent">@color/matrixGreen</item>
     </style>
 
-    <style name="preferenceTheme" parent="PreferenceThemeOverlay">
+    <!--
+        Buttons. Widget.AppCompat.Button.Colored fills with colorButtonNormal and
+        derives the label colour from it; because colorButtonNormal was a
+        near-black surface, the label was rendered near-black too (measured
+        #131814 on #0D140D, roughly 1.1:1 - invisible). Use an explicit green
+        fill with a black label instead.
+    -->
+    <style name="MatrixButton" parent="Widget.AppCompat.Button.Colored">
+        <item name="android:textColor">@color/matrixBlack</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:backgroundTint">@color/matrixGreen</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <!-- Lower-emphasis action: outlined, green label on the dark surface. -->
+    <style name="MatrixButtonSecondary" parent="Widget.AppCompat.Button.Borderless">
+        <item name="android:textColor">@color/matrixGreen</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+    </style>
+
+    <style name="preferenceTheme parent="PreferenceThemeOverlay">
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textColorSecondary">@color/textSecondary</item>
