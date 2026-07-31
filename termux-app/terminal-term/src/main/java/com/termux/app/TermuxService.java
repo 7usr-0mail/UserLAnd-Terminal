@@ -42,6 +42,13 @@ import java.util.List;
  */
 public final class TermuxService extends Service implements SessionChangedCallback {
 
+    /** Android 12+ requires an explicit mutability flag on every PendingIntent. */
+    private static int pendingIntentFlags() {
+        return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M
+                ? PendingIntent.FLAG_IMMUTABLE : 0;
+    }
+
+
     private String TAG = "TermuxService";
 
     private static final String NOTIFICATION_CHANNEL_ID = "UserLAnd";
@@ -179,7 +186,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
         // PendingIntent#getActivity(): "Note that the activity will be started outside of the context of an existing
         // activity, so you must use the Intent.FLAG_ACTIVITY_NEW_TASK launch flag in the Intent":
         notifyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifyIntent, 0);
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifyIntent, pendingIntentFlags());
 
         int sessionCount = mTerminalSessions.size();
         int taskCount = mBackgroundTasks.size();
@@ -215,7 +222,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
 
         Resources res = getResources();
         Intent exitIntent = new Intent(this, TermuxService.class).setAction(ACTION_STOP_SERVICE);
-        builder.addAction(android.R.drawable.ic_delete, res.getString(R.string.notification_action_exit), PendingIntent.getService(this, 0, exitIntent, 0));
+        builder.addAction(android.R.drawable.ic_delete, res.getString(R.string.notification_action_exit), PendingIntent.getService(this, 0, exitIntent, pendingIntentFlags()));
 
         String newWakeAction = wakeLockHeld ? ACTION_UNLOCK_WAKE : ACTION_LOCK_WAKE;
         Intent toggleWakeLockIntent = new Intent(this, TermuxService.class).setAction(newWakeAction);
@@ -223,7 +230,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
             R.string.notification_action_wake_unlock :
             R.string.notification_action_wake_lock);
         int actionIcon = wakeLockHeld ? android.R.drawable.ic_lock_idle_lock : android.R.drawable.ic_lock_lock;
-        builder.addAction(actionIcon, actionTitle, PendingIntent.getService(this, 0, toggleWakeLockIntent, 0));
+        builder.addAction(actionIcon, actionTitle, PendingIntent.getService(this, 0, toggleWakeLockIntent, pendingIntentFlags()));
 
         return builder.build();
     }

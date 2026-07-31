@@ -162,7 +162,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
 
         setupWithNavController(bottom_nav_view, navController)
 
-        val promptViewHolder = findViewById<ViewGroup>(R.id.layout_user_prompt_insert)
         if (userFeedbackPrompter.viewShouldBeShown()) {
             userFeedbackPrompter.showView()
         }
@@ -247,7 +246,18 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         super.onStart()
         LocalBroadcastManager.getInstance(this)
                 .registerReceiver(serverServiceBroadcastReceiver, IntentFilter(ServerService.SERVER_SERVICE_RESULT))
-        registerReceiver(downloadBroadcastReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        // Android 14+ requires every dynamically-registered receiver to declare
+        // whether it is exported. DownloadManager's completion broadcast comes
+        // from outside our app, so this one must be exported. Omitting the flag
+        // throws SecurityException and kills the app on launch.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(
+                    downloadBroadcastReceiver,
+                    IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
+                    Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(downloadBroadcastReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        }
     }
 
     override fun onResume() {
@@ -285,7 +295,11 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
 
         LocalBroadcastManager.getInstance(this)
                 .unregisterReceiver(serverServiceBroadcastReceiver)
-        unregisterReceiver(downloadBroadcastReceiver)
+        try {
+            unregisterReceiver(downloadBroadcastReceiver)
+        } catch (err: IllegalArgumentException) {
+            // Already unregistered; nothing to do.
+        }
     }
 
     override fun appHasBeenSelected(app: App, autoStart: Boolean) {

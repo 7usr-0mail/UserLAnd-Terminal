@@ -564,7 +564,14 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
             mListViewAdapter.notifyDataSetChanged();
         }
 
-        registerReceiver(mBroadcastReceiever, new IntentFilter(RELOAD_STYLE_ACTION));
+        // Android 14+ requires an explicit export flag. This receiver only
+        // listens for our own in-app broadcast, so it is NOT exported.
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(mBroadcastReceiever, new IntentFilter(RELOAD_STYLE_ACTION),
+                    Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            registerReceiver(mBroadcastReceiever, new IntentFilter(RELOAD_STYLE_ACTION));
+        }
 
         // The current terminal session may have changed while being away, force
         // a refresh of the displayed terminal:

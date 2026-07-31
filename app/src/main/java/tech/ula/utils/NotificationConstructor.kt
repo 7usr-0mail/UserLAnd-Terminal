@@ -39,20 +39,25 @@ class NotificationConstructor(val context: Context) {
         }
     }
 
+    // Android 12+ (S) throws IllegalArgumentException unless every PendingIntent
+    // declares its mutability. None of ours need to be mutable.
+    private val immutableFlag =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0
+
     fun buildPersistentServiceNotification(): Notification {
         val sessionListIntent = Intent(context, MainActivity::class.java)
         sessionListIntent.type = "sessionList"
         val pendingSessionListIntent = PendingIntent
-                .getActivity(context, 0, sessionListIntent, 0)
+                .getActivity(context, 0, sessionListIntent, immutableFlag)
 
         val stopSessionsIntent = Intent(context, ServerService::class.java).putExtra("type", "stopAll")
         val stopSessionsPendingIntent = PendingIntent
-                .getService(context, 0, stopSessionsIntent, PendingIntent.FLAG_UPDATE_CURRENT)
+                .getService(context, 0, stopSessionsIntent, PendingIntent.FLAG_UPDATE_CURRENT or immutableFlag)
 
         val settingsIntent = Intent(context, MainActivity::class.java)
         settingsIntent.type = "settings"
         val settingsPendingIntent = PendingIntent
-                .getActivity(context, 0, settingsIntent, 0)
+                .getActivity(context, 0, settingsIntent, immutableFlag)
 
         val builder = NotificationCompat.Builder(context, serviceNotificationChannelId)
                 .setSmallIcon(R.drawable.ic_stat_icon)
