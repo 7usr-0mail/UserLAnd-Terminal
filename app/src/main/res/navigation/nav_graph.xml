@@ -3,7 +3,9 @@
     according to user preference -->
 <navigation xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools" >
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/app_list_fragment" >
     <fragment
         android:id="@+id/app_list_fragment"
         android:name="tech.ula.ui.AppsListFragment"
