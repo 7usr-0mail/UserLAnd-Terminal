@@ -1,0 +1,56 @@
+<resources>
+
+    <!--
+        Matrix theme: dark base, phosphor-green accents and text throughout.
+        Built on the AppCompat dark parent so system widgets pick up
+        light-on-dark defaults automatically.
+    -->
+    <style name="AppTheme" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/matrixBlack</item>
+        <item name="android:colorBackground">@color/matrixBlack</item>
+        <item name="preferenceTheme">@style/preferenceTheme</item>
+
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+        <item name="android:textColorTertiary">@color/textDisabled</item>
+        <item name="android:textColorHint">@color/matrixGreenDim</item>
+
+        <item name="colorControlNormal">@color/matrixGreenMid</item>
+        <item name="colorControlActivated">@color/matrixGreen</item>
+        <item name="colorControlHighlight">@color/matrixGreenFaint</item>
+        <item name="colorButtonNormal">@color/matrixSurfaceRaised</item>
+
+        <item name="android:divider">@color/dividerColor</item>
+        <item name="alertDialogTheme">@style/MatrixAlertDialog</item>
+        <item name="android:alertDialogTheme">@style/MatrixAlertDialog</item>
+    </style>
+
+    <!-- Terminal activity: pure black, no chrome competing with the output. -->
+    <style name="TerminalTheme" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/matrixBlack</item>
+        <item name="colorPrimaryDark">@color/matrixBlack</item>
+        <item name="colorAccent">@color/matrixGreen</item>
+        <item name="android:windowBackground">@color/matrixBlack</item>
+        <item name="android:textColor">@color/matrixGreen</item>
+        <item name="android:textColorPrimary">@color/matrixGreen</item>
+        <item name="colorControlNormal">@color/matrixGreen</item>
+    </style>
+
+    <style name="MatrixAlertDialog" parent="Theme.MaterialComponents.Dialog.Alert">
+        <item name="android:background">@color/matrixSurface</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorPrimary">@color/textPrimary</item>
+        <item name="colorAccent">@color/matrixGreen</item>
+    </style>
+
+    <style name="preferenceTheme" parent="PreferenceThemeOverlay">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/textPrimary</item>
+        <item name="android:textColorSecondary">@color/textSecondary</item>
+    </style>
+
+</resources>

@@ -1,0 +1,36 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+
+    ext {
+        // Kotlin 1.8 is the last line that still ships kotlin-android-extensions
+        // (synthetic view accessors), which this codebase uses in 8 files.
+        kotlin_version = '1.7.21'
+        android_plugin = '7.4.2'
+        jacoco_version = '0.8.8'
+        navigation_version = '2.5.3'
+    }
+
+    dependencies {
+        classpath "com.android.tools.build:gradle:$android_plugin"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "androidx.navigation:navigation-safe-args-gradle-plugin:$navigation_version"
+        classpath "org.jacoco:org.jacoco.core:$jacoco_version"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+tasks.register('clean', Delete) {
+    delete rootProject.buildDir
+}

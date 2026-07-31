@@ -1,0 +1,5 @@
+Android runs a shell directly on your device, with no root filesystem download and no proot layer.
+
+It opens instantly in the built-in terminal, using the app's own sandbox permissions. Busybox is placed on the PATH so familiar GNU-style tools (grep, tar, find, vi, wget, sed, awk) work alongside Android's own toybox utilities.
+
+If the device is rooted, the shell automatically starts as root; otherwise it runs as the app user.

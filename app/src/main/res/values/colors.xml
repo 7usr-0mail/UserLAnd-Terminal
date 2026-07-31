@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+        Matrix colour scheme: phosphor green on black, as seen on the
+        terminals in the film. Kept deliberately high-contrast so the UI
+        matches the launcher icon.
+    -->
+
+    <!-- Core palette -->
+    <color name="matrixBlack">#000000</color>
+    <color name="matrixSurface">#0A0F0A</color>
+    <color name="matrixSurfaceRaised">#111811</color>
+    <color name="matrixGreen">#00FF41</color>
+    <color name="matrixGreenBright">#39FF14</color>
+    <color name="matrixGreenMid">#00CC33</color>
+    <color name="matrixGreenDim">#008F11</color>
+    <color name="matrixGreenDark">#003B00</color>
+    <color name="matrixGreenFaint">#1A2E1A</color>
+
+    <!-- Theme mapping -->
+    <color name="colorPrimary">#0A0F0A</color>
+    <color name="colorPrimaryDark">#000000</color>
+    <color name="colorAccent">#00FF41</color>
+
+    <!-- Text -->
+    <color name="textPrimary">#00FF41</color>
+    <color name="textSecondary">#00CC33</color>
+    <color name="textDisabled">#008F11</color>
+
+    <!-- Navigation -->
+    <color name="InactiveBottomNavIconColor">#008F11</color>
+    <color name="ActiveBottomNavIconColor">#00FF41</color>
+
+    <!-- Status colours, tinted to stay inside the matrix palette -->
+    <color name="holo_blue_light">#00FFC8</color>
+    <color name="holo_green_light">#00FF41</color>
+    <color name="holo_red_light">#FF3B30</color>
+    <color name="holo_orange_light">#CCFF00</color>
+
+    <!-- Session/app list states -->
+    <color name="colorActiveSession">#00FF41</color>
+    <color name="colorInactiveSession">#008F11</color>
+    <color name="dividerColor">#1A2E1A</color>
+</resources>
