@@ -142,6 +142,16 @@ class ServerService : Service(), CoroutineScope {
             }
             if (waited >= timeoutMillis) {
                 sendServerOutputBroadcast("[service] giving up after ${timeoutMillis / 1000}s")
+                // Tear down whatever we started. Previously the timeout returned
+                // without killing it, so a half-started dropbear kept holding
+                // port 2022 and every later attempt died with
+                // "Address already in use / No listening ports available".
+                sendServerOutputBroadcast("[service] cleaning up the failed server")
+                try {
+                    localServerManager.stopService(session)
+                } catch (err: Exception) {
+                    sendServerOutputBroadcast("[service] cleanup failed: ${'$'}{err.message}")
+                }
                 sendDialogBroadcast("serverFailedToStart")
                 stopForeground(true)
                 stopSelf()
