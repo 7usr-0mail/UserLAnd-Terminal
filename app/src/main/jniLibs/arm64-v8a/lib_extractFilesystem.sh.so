@@ -51,7 +51,17 @@ STATUS=$?
 for nested in /kali-*; do
     if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
         echo "[extract] Flattening Kali root: $nested"
-        $BB cp -a "$nested"/. / || STATUS=1
+        # Do not copy pseudo-filesystems over proot's own mounts. Copying them
+        # with cp -a tries to preserve metadata Android denies and turns an
+        # otherwise successful extraction into a failure.
+        for child in "$nested"/* "$nested"/.[!.]* "$nested"/..?*; do
+            [ -e "$child" ] || continue
+            name="${child##*/}"
+            case "$name" in
+                dev|proc|sys|mnt|data|host-rootfs|support|sdcard) continue ;;
+            esac
+            $BB cp -R "$child" / || STATUS=1
+        done
         $BB rm -rf "$nested"
     fi
 done
