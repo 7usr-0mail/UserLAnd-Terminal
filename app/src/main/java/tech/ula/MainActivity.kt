@@ -165,6 +165,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         setSupportActionBar(toolbar)
         notificationManager.createServiceNotificationChannel() // Android O requirement
 
+        setupConsoleScrollTracking()
         setNavStartDestination()
         setProgressDialogNavListeners()
 
@@ -603,6 +604,13 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             layout_progress.isFocusable = true
             layout_progress.isClickable = true
             progressBarIsVisible = true
+
+            // Re-showing the overlay re-lays out the ScrollView, which starts at
+            // offset 0. That is what jumped the console to the top when the SSH
+            // phase began. Restore the tail if the user was following it.
+            if (userIsFollowingTail) {
+                scroll_console.post { scroll_console.fullScroll(View.FOCUS_DOWN) }
+            }
         }
     }
 
@@ -611,6 +619,11 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     private val consoleLines = ArrayDeque<String>()
     private val maxConsoleLines = 300
     private var lastConsoleStep = ""
+
+    // True while the user is parked at the bottom, so new output should follow.
+    // Set false the moment they scroll away, and true again when they return -
+    // driven by real scroll events rather than guessed at during append.
+    private var userIsFollowingTail = true
 
     private fun updateProgressBar(step: String, details: String) {
         displayProgressBar()
@@ -628,39 +641,66 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     }
 
     /**
-     * Appends a line to the console overlay and keeps it scrolled to the bottom,
-     * so setup reads like a terminal rather than a single truncated status line.
+     * Appends a line to the console overlay.
+     *
+     * Assigning TextView.text resets the parent ScrollView's scroll position to
+     * 0, so doing it per line meant the view snapped to the top on every append
+     * and the follow-the-tail call then snapped it to the bottom - never
+     * anywhere in between, and it fought the user constantly.
+     *
+     * TextView.append() does not reset scroll position, so it is used for the
+     * common case. The buffer is only rebuilt when trimming, and the scroll
+     * offset is preserved across that rebuild.
      */
     private fun appendConsoleLine(line: String) {
         val trimmed = line.trimEnd()
         if (trimmed.isEmpty() && consoleLines.lastOrNull()?.isEmpty() == true) return
 
+        val follow = userIsFollowingTail
         consoleLines.addLast(trimmed)
-        while (consoleLines.size > maxConsoleLines) consoleLines.removeFirst()
 
-        // Only follow the tail if the user is already near the bottom. Scrolling
-        // unconditionally fought the user whenever they scrolled up to read
-        // something, yanking them back down on every new line.
-        val wasAtBottom = isConsoleAtBottom()
+        if (consoleLines.size > maxConsoleLines) {
+            // Trimming requires a full rebuild. Preserve the visual position by
+            // measuring how far the content shifted.
+            val before = text_console_output.height
+            while (consoleLines.size > maxConsoleLines) consoleLines.removeFirst()
+            val previousScroll = scroll_console.scrollY
+            text_console_output.text = consoleLines.joinToString("\n")
+            text_console_output.post {
+                val shift = before - text_console_output.height
+                if (!follow && shift > 0) scroll_console.scrollTo(0, (previousScroll - shift).coerceAtLeast(0))
+            }
+        } else {
+            // Does not disturb scrollY.
+            if (text_console_output.text.isEmpty()) {
+                text_console_output.append(trimmed)
+            } else {
+                text_console_output.append("\n" + trimmed)
+            }
+        }
 
-        text_console_output.text = consoleLines.joinToString("\n")
-
-        if (wasAtBottom) {
+        if (follow) {
             scroll_console.post { scroll_console.fullScroll(View.FOCUS_DOWN) }
         }
     }
 
-    /** True when the console is scrolled within a line or two of the end. */
-    private fun isConsoleAtBottom(): Boolean {
-        val child = scroll_console.getChildAt(0) ?: return true
-        val bottomEdge = child.height - scroll_console.height - scroll_console.scrollY
-        // Treat 'close enough' as at-bottom so rounding does not strand the user.
-        return bottomEdge <= 80
+    /**
+     * Tracks whether the user is parked at the bottom of the console. While they
+     * are, new output follows the tail; the moment they scroll up to read, it
+     * stops moving under them and stays put until they scroll back down.
+     */
+    private fun setupConsoleScrollTracking() {
+        scroll_console.viewTreeObserver.addOnScrollChangedListener {
+            val child = scroll_console.getChildAt(0) ?: return@addOnScrollChangedListener
+            val distanceFromBottom = child.height - scroll_console.height - scroll_console.scrollY
+            userIsFollowingTail = distanceFromBottom <= 60
+        }
     }
 
     private fun resetConsole() {
         consoleLines.clear()
         lastConsoleStep = ""
+        userIsFollowingTail = true
         text_console_output.text = ""
     }
 

@@ -17,13 +17,26 @@ android {
     defaultConfig {
         // Version code is generated as time since June 1, 2019. These allows for constantly
         // sequential deployments to both production and beta tracks.
-        // A timestamp-derived version code changes on every invocation, which
-        // regenerates the manifest and defeats incremental builds. Only compute
-        // it when actually publishing.
+        // Version code. A per-second timestamp changes on every invocation,
+        // which regenerates the manifest and defeats incremental builds. But it
+        // cannot be a constant either: Android refuses to install an APK whose
+        // versionCode is not greater than the installed one, which would break
+        // in-place updates.
+        //
+        // Compromise: derive it from the day, so it is stable within a single
+        // day's builds (incremental builds work) but still increases over time
+        // (updates install cleanly). CI can override with -PversionCode=N.
         def isPublishing = gradle.startParameter.taskNames.any {
             it.toLowerCase().contains('release') || it.toLowerCase().contains('beta')
         }
-        def vcode = isPublishing ? (int)(((new Date().getTime()/1000) - 1559347200) / 10) : 1
+        def vcode
+        if (project.hasProperty('versionCode')) {
+            vcode = project.versionCode.toInteger()
+        } else if (isPublishing) {
+            vcode = (int)(((new Date().getTime()/1000) - 1559347200) / 10)
+        } else {
+            vcode = (int)(((new Date().getTime()/1000) - 1559347200) / 86400)
+        }
 
         applicationId "tech.terminal.ula"
         minSdkVersion 21
@@ -64,6 +77,18 @@ android {
     }
 
     signingConfigs {
+        // A fixed debug key committed to the repo. Without this, every CI runner
+        // generates a fresh random ~/.android/debug.keystore, so consecutive
+        // APKs are signed with different keys and Android refuses to install one
+        // over the other ("App not installed" / signature mismatch), forcing an
+        // uninstall and losing all app data including built filesystems.
+        // This key is deliberately public and is for development builds only.
+        debug {
+            storeFile file('terminal-debug.keystore')
+            storePassword 'terminal'
+            keyAlias 'terminal'
+            keyPassword 'terminal'
+        }
         beta {
             storeFile project.file('../keystore.jks')
             keyAlias System.getenv('ANDROID_KEY_ALIAS')
@@ -98,6 +123,7 @@ android {
             debuggable true
             minifyEnabled false
             testCoverageEnabled true
+            signingConfig signingConfigs.debug
             buildConfigField 'boolean', 'ENABLE_PLAY_SERVICES', 'false'
         }
         beta {
