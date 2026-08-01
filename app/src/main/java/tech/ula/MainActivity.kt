@@ -300,6 +300,11 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         startActivity(intent)
     }
 
+    override fun onResume() {
+        super.onResume()
+        PermissionHandler.offerFullStorageAccess(this)
+    }
+
     override fun onStop() {
         super.onStop()
 

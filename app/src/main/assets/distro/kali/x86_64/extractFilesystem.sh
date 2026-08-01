@@ -64,6 +64,15 @@ for nested in /kali-*; do
     fi
 done
 
+# Do not continue with an opaque bootstrap failure if the archive layout did
+# not flatten correctly or a copy operation ran out of storage.
+if [ ! -x /bin/sh ] || [ ! -d /usr ]; then
+    echo "[extract] FATAL: Kali root layout was not flattened (/bin/sh or /usr missing)"
+    touch /support/.failure_filesystem_extraction
+    exit 1
+fi
+echo "[extract] Kali root layout ready: /bin/sh and /usr found"
+
 # Arch and some bootstrap images nest everything one level deep.
 for nested in /root.x86_64 /archlinux-bootstrap*; do
     if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
@@ -75,10 +84,20 @@ done
 if [ "$STATUS" -eq 0 ]; then
     # Adapt the pristine official image for proot.
     if [ -x /support/bootstrapOfficialRootfs.sh ]; then
-        /support/bootstrapOfficialRootfs.sh
+        echo "[extract] Starting bootstrap"
+        if ! /support/bootstrapOfficialRootfs.sh 2>&1; then
+            echo "[extract] FATAL: bootstrap command failed"
+            touch /support/.failure_filesystem_extraction
+            exit 1
+        fi
     elif [ -x /support/addNonRootUser.sh ]; then
-        /support/addNonRootUser.sh
+        if ! /support/addNonRootUser.sh 2>&1; then
+            echo "[extract] FATAL: legacy bootstrap command failed"
+            touch /support/.failure_filesystem_extraction
+            exit 1
+        fi
     fi
+    echo "[extract] Bootstrap complete"
     touch /support/.success_filesystem_extraction
     rm -f "$ARCHIVE"
 else
