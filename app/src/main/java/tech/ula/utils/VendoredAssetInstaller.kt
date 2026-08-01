@@ -91,7 +91,7 @@ class VendoredAssetInstaller(
         return try {
             val info = context.packageManager.getPackageInfo(context.packageName, 0)
             @Suppress("DEPRECATION")
-            "${'$'}{info.versionName}-${'$'}{info.versionCode}"
+            "${info.versionName}-${info.versionCode}"
         } catch (err: Exception) {
             "unknown"
         }

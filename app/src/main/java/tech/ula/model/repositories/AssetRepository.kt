@@ -57,6 +57,13 @@ class AssetRepository(
         return downloadRequirements
     }
 
+    /** Refresh bundled scripts on every filesystem launch when the APK changed. */
+    suspend fun refreshVendoredAssets(distributionType: String) {
+        if (!vendoredAssetInstaller.assetsAreInstalled(distributionType)) {
+            vendoredAssetInstaller.installAssets(distributionType)
+        }
+    }
+
     fun getDistributionAssetsForExistingFilesystem(filesystem: Filesystem): List<Asset> {
         val assets = vendoredAssetInstaller.getBundledAssetList(filesystem.distributionType)
         return assets.filter { !it.name.contains("rootfs") }

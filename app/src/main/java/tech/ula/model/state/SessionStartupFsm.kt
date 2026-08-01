@@ -231,6 +231,15 @@ class SessionStartupFsm(
         state.postValue(VerifyingFilesystemAssets)
 
         val filesystemDirectoryName = "${filesystem.id}"
+        // Existing filesystems normally skip the download/setup path. Refresh
+        // their APK-bundled scripts here so a new build cannot keep executing
+        // a stale startSSHServer.sh from a prior installation.
+        try {
+            assetRepository.refreshVendoredAssets(filesystem.distributionType)
+        } catch (err: Exception) {
+            state.postValue(AssetsAreMissingFromSupportDirectories)
+            return@withContext
+        }
         val requiredAssets = assetRepository.getDistributionAssetsForExistingFilesystem(filesystem)
         val allAssetsArePresentOnFilesystem = filesystemManager.areAllRequiredAssetsPresent(filesystemDirectoryName, requiredAssets)
         val lastDownloadedAssetVersion = assetRepository.getLatestDistributionVersion(filesystem.distributionType)
