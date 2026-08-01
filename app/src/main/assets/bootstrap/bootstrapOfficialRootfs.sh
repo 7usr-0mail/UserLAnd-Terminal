@@ -76,7 +76,7 @@ setup_package_mirror() {
             cat > /etc/apt/sources.list <<-EOF
 			deb $MIRROR $CODENAME main contrib non-free non-free-firmware
 			deb $MIRROR $CODENAME-updates main contrib non-free non-free-firmware
-			deb https://deb.debian.org/debian-security $CODENAME-security main contrib non-free
+			deb http://security.debian.org/debian-security $CODENAME-security main contrib non-free
 			EOF
             ;;
         alpine)
@@ -106,6 +106,9 @@ setup_apt_for_proot() {
     cat > /etc/apt/apt.conf.d/99userland <<-EOF
 	APT::Sandbox::User "root";
 	Acquire::Check-Valid-Until "false";
+	Acquire::ForceIPv4 "true";
+	Acquire::Retries "3";
+	Acquire::http::Timeout "30";
 	APT::Install-Recommends "false";
 	Dpkg::Options { "--force-confdef"; "--force-confold"; };
 	EOF
@@ -168,25 +171,35 @@ install_ssh_server() {
         return 0
     fi
 
+    log "Checking network access to the official archive"
+    HOST="$(echo "$MIRROR" | sed 's|^[a-z]*://||; s|/.*||')"
+    if command -v getent >/dev/null 2>&1; then
+        if getent hosts "$HOST" >/dev/null 2>&1; then
+            log "DNS OK: $HOST resolves"
+        else
+            log "WARNING: cannot resolve $HOST - DNS may be blocked inside proot"
+        fi
+    fi
+
     log "Installing SSH server from the official archive (this takes a few minutes)"
 
     case "$DISTRO" in
         ubuntu|debian)
             export DEBIAN_FRONTEND=noninteractive
-            apt-get update 2>&1 | tail -5
+            apt-get update 2>&1
             # dropbear-bin is the server; sudo makes the session usable.
-            apt-get install -y --no-install-recommends dropbear-bin sudo 2>&1 | tail -10
+            apt-get install -y --no-install-recommends dropbear-bin sudo 2>&1
             # Some releases only provide the metapackage name.
             if ! command -v dropbear >/dev/null 2>&1; then
-                apt-get install -y --no-install-recommends dropbear 2>&1 | tail -10
+                apt-get install -y --no-install-recommends dropbear 2>&1
             fi
             ;;
         alpine)
-            apk update 2>&1 | tail -3
-            apk add --no-cache dropbear sudo 2>&1 | tail -5
+            apk update 2>&1
+            apk add --no-cache dropbear sudo 2>&1
             ;;
         arch)
-            pacman -Sy --noconfirm dropbear sudo 2>&1 | tail -10
+            pacman -Sy --noconfirm dropbear sudo 2>&1
             ;;
     esac
 

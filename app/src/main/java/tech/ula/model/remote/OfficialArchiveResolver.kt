@@ -39,12 +39,15 @@ class OfficialArchiveResolver(
         const val UBUNTU_PORTS = "http://ports.ubuntu.com/ubuntu-ports"
 
         // The Debian project's official CDN.
-        const val DEBIAN_ARCHIVE = "https://deb.debian.org/debian"
+        // Plain HTTP: the pristine base images ship no ca-certificates, so apt
+        // cannot complete a TLS handshake. Integrity still comes from the signed
+        // Release files rather than the transport.
+        const val DEBIAN_ARCHIVE = "http://deb.debian.org/debian"
         // Official debuerreotype-produced rootfs published by the Debian project.
         const val DEBIAN_ROOTFS_BASE = "https://github.com/debuerreotype/docker-debian-artifacts/raw"
 
         // The Alpine project's official CDN.
-        const val ALPINE_CDN = "https://dl-cdn.alpinelinux.org/alpine"
+        const val ALPINE_CDN = "http://dl-cdn.alpinelinux.org/alpine"
 
         // Arch Linux ARM official downloads, and Arch's official bootstrap archive.
         const val ARCH_ARM = "http://os-archive.archlinuxarm.org/os"

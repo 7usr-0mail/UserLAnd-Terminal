@@ -101,6 +101,11 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
                 logger.addBreadcrumb(breadcrumb)
                 when (intentType) {
                     "sessionActivated" -> handleSessionHasBeenActivated()
+                    "serverOutput" -> {
+                        // Surface server startup output in the console so a
+                        // failure to launch is visible rather than silent.
+                        intent.getStringExtra("line")?.let { appendConsoleLine(it) }
+                    }
                     "dialog" -> {
                         val type = intent.getStringExtra("dialogType") ?: ""
                         showDialog(type)
@@ -303,6 +308,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     }
 
     override fun appHasBeenSelected(app: App, autoStart: Boolean) {
+        resetConsole()
         // The Android app runs a shell on the device itself: no filesystem, no
         // proot, no downloads, and therefore no permissions to wait on.
         if (app.name.equals(ANDROID_APP_NAME, ignoreCase = true)) {
@@ -643,7 +649,9 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     }
 
     private fun killProgressBar() {
-        resetConsole()
+        // Deliberately not clearing the console here: on failure the dialog
+        // closes the overlay, and wiping the log would destroy the only record
+        // of why. It is cleared when the next run starts instead.
         val outAnimation = AlphaAnimation(1f, 0f)
         outAnimation.duration = 200
         layout_progress.animation = outAnimation

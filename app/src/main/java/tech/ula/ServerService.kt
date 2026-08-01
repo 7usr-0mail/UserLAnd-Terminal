@@ -42,7 +42,9 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private val localServerManager by lazy {
-        LocalServerManager(this.filesDir.path, busyboxExecutor)
+        LocalServerManager(this.filesDir.path, busyboxExecutor).apply {
+            outputListener = { line -> sendServerOutputBroadcast(line) }
+        }
     }
 
     override fun onCreate() {
@@ -135,7 +137,11 @@ class ServerService : Service(), CoroutineScope {
         while (!localServerManager.isServerRunning(session)) {
             delay(pollIntervalMillis)
             waited += pollIntervalMillis
+            if (waited % 10_000L == 0L) {
+                sendServerOutputBroadcast("[service] waiting for server... ${waited / 1000}s")
+            }
             if (waited >= timeoutMillis) {
+                sendServerOutputBroadcast("[service] giving up after ${timeoutMillis / 1000}s")
                 sendDialogBroadcast("serverFailedToStart")
                 stopForeground(true)
                 stopSelf()
@@ -237,6 +243,13 @@ class ServerService : Service(), CoroutineScope {
     private fun sendSessionActivatedBroadcast() {
         val intent = Intent(SERVER_SERVICE_RESULT)
                 .putExtra("type", "sessionActivated")
+        broadcaster.sendBroadcast(intent)
+    }
+
+    private fun sendServerOutputBroadcast(line: String) {
+        val intent = Intent(SERVER_SERVICE_RESULT)
+                .putExtra("type", "serverOutput")
+                .putExtra("line", line)
         broadcaster.sendBroadcast(intent)
     }
 

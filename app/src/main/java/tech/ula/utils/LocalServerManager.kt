@@ -10,6 +10,13 @@ class LocalServerManager(
     private val logger: Logger = SentryLogger()
 ) {
 
+    /**
+     * Receives server startup output so it can be surfaced in the UI console.
+     * Without this, a server that fails to launch produces no visible reason
+     * and the session simply times out.
+     */
+    var outputListener: ((String) -> Unit)? = null
+
     private val vncDisplayNumber = 51
 
     fun Process.pid(): Long {
@@ -66,7 +73,11 @@ class LocalServerManager(
         val filesystemDirName = session.filesystemId.toString()
         deletePidFile(session)
         val command = "/support/startSSHServer.sh"
-        val result = busyboxExecutor.executeProotCommand(command, filesystemDirName, false)
+        val result = busyboxExecutor.executeProotCommand(
+                command,
+                filesystemDirName,
+                commandShouldTerminate = false,
+                listener = { line -> outputListener?.invoke(line) })
         return when (result) {
             is OngoingExecution -> result.process.pid()
             is FailedExecution -> {
