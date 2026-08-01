@@ -29,8 +29,13 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}
-          restore-keys: gradle-${{ runner.os }}-
+            ~/.gradle/configuration-cache
+            .gradle
+            app/build/intermediates
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}-${{ github.sha }}
+          restore-keys: |
+            gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle', 'gradle/wrapper/gradle-wrapper.properties') }}-
+            gradle-${{ runner.os }}-
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
@@ -42,10 +47,18 @@ jobs:
           sed -i 's/^org.gradle.jvmargs=.*/org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m/' gradle.properties
           sed -i 's/^org.gradle.parallel=.*/org.gradle.parallel=true/' gradle.properties
           sed -i '/^org.gradle.workers.max=/d;/^kotlin.compiler.execution.strategy=/d;/^kapt.use.worker.api=/d' gradle.properties
+          # The sandbox this was developed in had 2 GB RAM and needed these off.
+          # CI has 16 GB, so turn the fast paths back on.
+          sed -i 's/^kotlin.incremental=false/kotlin.incremental=true/' gradle.properties
+          echo 'org.gradle.daemon=true' >> gradle.properties
+          echo 'org.gradle.configureondemand=true' >> gradle.properties
+          echo 'kotlin.incremental.useClasspathSnapshot=true' >> gradle.properties
           cat gradle.properties
 
       - name: Build debug APK
-        run: ./gradlew :app:assembleDebug --stacktrace
+        # --build-cache reuses task outputs across runs. abiFilters keeps the
+        # APK to arm64 for test installs; remove it to ship all architectures.
+        run: ./gradlew :app:assembleDebug --stacktrace --build-cache
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

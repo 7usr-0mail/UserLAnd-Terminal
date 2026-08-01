@@ -17,7 +17,13 @@ android {
     defaultConfig {
         // Version code is generated as time since June 1, 2019. These allows for constantly
         // sequential deployments to both production and beta tracks.
-        def vcode = (int)(((new Date().getTime()/1000) - 1559347200) / 10)
+        // A timestamp-derived version code changes on every invocation, which
+        // regenerates the manifest and defeats incremental builds. Only compute
+        // it when actually publishing.
+        def isPublishing = gradle.startParameter.taskNames.any {
+            it.toLowerCase().contains('release') || it.toLowerCase().contains('beta')
+        }
+        def vcode = isPublishing ? (int)(((new Date().getTime()/1000) - 1559347200) / 10) : 1
 
         applicationId "tech.terminal.ula"
         minSdkVersion 21
@@ -69,6 +75,21 @@ android {
             keyAlias System.getenv('ANDROID_KEY_ALIAS')
             storePassword System.getenv('ANDROID_STORE_PASSWORD')
             keyPassword System.getenv('ANDROID_KEY_PASSWORD')
+        }
+    }
+
+    packagingOptions {
+        // Nothing in jniLibs needs stripping: the binaries ship prebuilt, and
+        // 44 of the 112 entries are shell scripts that llvm-strip cannot read.
+        doNotStrip '**/*.so'
+
+        jniLibs {
+            // Our jniLibs are not all ELF: proot/busybox are, but 44 of the 112
+            // entries are shell scripts and text markers shipped through the
+            // same mechanism. llvm-strip fails on every one of them, which
+            // costs ~11s and floods the log with errors. Nothing here needs
+            // stripping - the binaries ship prebuilt.
+            useLegacyPackaging = true
         }
     }
 
