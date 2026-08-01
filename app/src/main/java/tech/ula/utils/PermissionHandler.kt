@@ -4,15 +4,19 @@ import android.Manifest
 import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
+import android.app.admin.DevicePolicyManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import android.os.PowerManager
 import android.provider.Settings
 import android.net.Uri
 import androidx.core.content.ContextCompat
 import tech.ula.R
+import tech.ula.TerminalDeviceAdminReceiver
 
 /**
  * Permission handling that is aware of the very different storage models across
@@ -37,9 +41,7 @@ class PermissionHandler {
         private fun requiredPermissions(): Array<String> {
             return when {
                 // Android 13+: shared storage is granular media access only.
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
-                        Manifest.permission.POST_NOTIFICATIONS
-                )
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf()
                 // Android 10-12: scoped storage; legacy read still meaningful.
                 Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> arrayOf(
                         Manifest.permission.READ_EXTERNAL_STORAGE
@@ -83,24 +85,97 @@ class PermissionHandler {
          * True when the app can read and write arbitrary shared storage. Used only
          * for optional features such as exporting a filesystem backup.
          */
-        /** Prompt once for Android's special All files access capability. */
-        fun offerFullStorageAccess(activity: Activity) {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || hasFullStorageAccess(activity)) return
+        /** Offer each Android capability in sequence. None blocks basic proot use. */
+        fun offerTerminalCapabilities(activity: Activity) {
             val preferences = activity.getSharedPreferences("terminal_permissions", Context.MODE_PRIVATE)
-            if (preferences.getBoolean("full_storage_prompted", false)) return
-            AlertDialog.Builder(activity)
-                    .setTitle("Full terminal storage access")
-                    .setMessage("Allow All files access to make shared internal storage available in Linux at /storage/shared. This does not grant root or access to other apps' private data.")
-                    .setPositiveButton("Open Android settings") { dialog, _ ->
-                        preferences.edit().putBoolean("full_storage_prompted", true).apply()
-                        activity.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
-                                Uri.parse("package:${activity.packageName}")))
-                        dialog.dismiss()
-                    }
-                    .setNegativeButton(R.string.alert_permissions_necessary_cancel_button) { dialog, _ ->
-                        preferences.edit().putBoolean("full_storage_prompted", true).apply()
-                        dialog.dismiss()
-                    }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !hasFullStorageAccess(activity) &&
+                    !preferences.getBoolean("all_files_seen_v2", false)) {
+                showCapabilityDialog(activity, "Full terminal storage access",
+                        "Allow All files access to expose shared phone storage at /storage/shared.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("all_files_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                            Uri.parse("package:${activity.packageName}")))
+                }
+                return
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !canIgnoreBatteryOptimizations(activity) &&
+                    !preferences.getBoolean("battery_seen_v2", false)) {
+                showCapabilityDialog(activity, "Keep terminal sessions running",
+                        "Allow the terminal to ignore battery optimization for long downloads and background sessions.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("battery_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                            Uri.parse("package:${activity.packageName}")))
+                }
+                return
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.System.canWrite(activity) &&
+                    !preferences.getBoolean("write_settings_seen_v2", false)) {
+                showCapabilityDialog(activity, "Modify Android settings",
+                        "Allow future terminal bridge commands to change settings Android permits apps to modify.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("write_settings_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS,
+                            Uri.parse("package:${activity.packageName}")))
+                }
+                return
+            }
+            if (!isDeviceAdminActive(activity) && !preferences.getBoolean("admin_seen_v2", false)) {
+                showCapabilityDialog(activity, "Enable Device Administrator",
+                        "Enable the limited Device Administrator capability. It permits device lock only; it does not grant root or wipe/reset-password access.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("admin_seen_v2", true).apply()
+                    val component = ComponentName(activity, TerminalDeviceAdminReceiver::class.java)
+                    activity.startActivity(Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN)
+                            .putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, component)
+                            .putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION,
+                                    "Enables the terminal's optional device-lock command."))
+                }
+                return
+            }
+            val missing = optionalRuntimePermissions().filter {
+                ContextCompat.checkSelfPermission(activity, it) != PackageManager.PERMISSION_GRANTED
+            }.toTypedArray()
+            if (missing.isNotEmpty() && !preferences.getBoolean("runtime_seen_v2", false)) {
+                showCapabilityDialog(activity, "Terminal notifications and media access",
+                        "Allow notifications for background sessions and media access for gallery files.",
+                        "Continue") {
+                    preferences.edit().putBoolean("runtime_seen_v2", true).apply()
+                    activity.requestPermissions(missing, permissionRequestCode)
+                }
+            }
+        }
+
+        private fun optionalRuntimePermissions(): Array<String> = when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU -> arrayOf(
+                    Manifest.permission.POST_NOTIFICATIONS,
+                    Manifest.permission.READ_MEDIA_IMAGES,
+                    Manifest.permission.READ_MEDIA_VIDEO,
+                    Manifest.permission.READ_MEDIA_AUDIO
+            )
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> arrayOf(
+                    Manifest.permission.READ_EXTERNAL_STORAGE,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE
+            )
+            else -> emptyArray()
+        }
+
+        private fun canIgnoreBatteryOptimizations(context: Context): Boolean {
+            val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+            return power.isIgnoringBatteryOptimizations(context.packageName)
+        }
+
+        private fun isDeviceAdminActive(context: Context): Boolean {
+            val policy = context.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            return policy.isAdminActive(ComponentName(context, TerminalDeviceAdminReceiver::class.java))
+        }
+
+        private fun showCapabilityDialog(activity: Activity, title: String, message: String,
+                                         positive: String, onPositive: () -> Unit) {
+            AlertDialog.Builder(activity).setTitle(title).setMessage(message)
+                    .setPositiveButton(positive) { dialog, _ -> onPositive(); dialog.dismiss() }
+                    .setNegativeButton(R.string.alert_permissions_necessary_cancel_button) { dialog, _ -> dialog.dismiss() }
                     .show()
         }
 
