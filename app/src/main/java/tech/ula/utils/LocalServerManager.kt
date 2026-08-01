@@ -79,10 +79,16 @@ class LocalServerManager(
         val filesystemDirName = session.filesystemId.toString()
         deletePidFile(session)
         val command = "/support/startSSHServer.sh"
+        // startVNCServer passes the username but startSSHServer never did, so
+        // the script saw INITIAL_USERNAME unset, logged 'user=unknown', and
+        // could not verify the account exists.
+        val env = HashMap<String, String>()
+        env["INITIAL_USERNAME"] = session.username
         val result = busyboxExecutor.executeProotCommand(
                 command,
                 filesystemDirName,
                 commandShouldTerminate = false,
+                env = env,
                 listener = { line -> outputListener?.invoke(line) ?: Unit })
         return when (result) {
             is OngoingExecution -> result.process.pid()

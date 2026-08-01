@@ -45,7 +45,12 @@
 
         <service
             android:name="com.termux.app.TermuxService"
-            android:exported="false" />
+            android:foregroundServiceType="specialUse"
+            android:exported="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Keeps the terminal session alive in the background" />
+        </service>
 
         <meta-data android:name="com.sec.android.support.multiwindow" android:value="true" />
     </application>
