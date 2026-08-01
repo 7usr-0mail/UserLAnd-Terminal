@@ -7,7 +7,7 @@ import android.net.Uri
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.* // ktlint-disable no-wildcard-imports
-import com.termux.app.TermuxService
+import com.termux.app.TermuxActivity
 import tech.ula.model.entities.App
 import tech.ula.model.entities.ServiceType
 import tech.ula.model.repositories.UlaDatabase
@@ -185,21 +185,25 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun startSshClient(session: Session) {
-        // Connect the bundled terminal to the session's local SSH server rather
-        // than handing off to a third-party client. TermuxService already knows
-        // how to drive the vendored dbclient with these extras; upstream simply
-        // never wired it up in this branch.
-        val termIntent = Intent(this, TermuxService::class.java)
-                .setAction(TermuxService.ACTION_EXECUTE)
-                .putExtra("username", session.username)
-                .putExtra("hostname", "localhost")
-                .putExtra("port", "${session.port}")
-                .putExtra("sessionName", session.name)
+        // Launch the activity with its documented ssh:// URI. Starting
+        // TermuxService directly first caused it to open TermuxActivity without
+        // connection data; that activity then overwrote the service fields with
+        // empty values, so dbclient exited immediately while the server stayed up.
+        val connectionUri = Uri.Builder()
+                .scheme("ssh")
+                .encodedAuthority("${Uri.encode(session.username)}@localhost:${session.port}")
+                .path("/")
+                .fragment(session.name)
+                .build()
+        val termIntent = Intent(this, TermuxActivity::class.java)
+                .setAction(Intent.ACTION_VIEW)
+                .setData(connectionUri)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
 
         try {
-            startService(termIntent)
+            startActivity(termIntent)
         } catch (err: Exception) {
-            logger.addExceptionBreadcrumb(Exception("Could not start in-app terminal: ${err.message}"))
+            logger.addExceptionBreadcrumb(Exception("Could not open in-app terminal: ${err.message}"))
             sendDialogBroadcast("unhandledSessionServiceType")
         }
     }

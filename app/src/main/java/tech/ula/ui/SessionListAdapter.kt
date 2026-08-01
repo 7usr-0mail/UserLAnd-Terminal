@@ -91,7 +91,7 @@ class SessionListAdapter(
                 val filesystem = filesystems.find { it.id == session.filesystemId } ?: Filesystem(0, name = "ERROR")
 
                 if (session.active) {
-                    view?.setBackgroundResource(R.color.colorAccent)
+                    view?.setBackgroundResource(R.color.colorActiveSession)
                 } else {
                     view?.setBackgroundResource(R.color.colorPrimaryDark)
                 }

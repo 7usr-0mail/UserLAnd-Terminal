@@ -99,7 +99,7 @@ class AppsListAdapter(
     private fun setAppActivity(app: App, viewHolder: ViewHolder) {
         val appIsActive = activeApps.contains(app)
         val backgroundColor = if (appIsActive) {
-            R.color.colorAccent
+            R.color.colorActiveSession
         } else {
             R.color.colorPrimaryDark
         }

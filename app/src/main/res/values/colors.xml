@@ -38,7 +38,7 @@
     <color name="holo_orange_light">#CCFF00</color>
 
     <!-- Session/app list states -->
-    <color name="colorActiveSession">#00FF41</color>
+    <color name="colorActiveSession">#B300FF41</color>
     <color name="colorInactiveSession">#00B82E</color>
     <color name="dividerColor">#2E5C34</color>
 </resources>

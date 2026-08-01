@@ -69,8 +69,6 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * A terminal emulator activity.
@@ -332,21 +330,17 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
     private String sessionName = "";
 
     private void parseUserlandIntent(String intentData) {
-        String regexPattern = "ssh://([\\w\\W]+)@([\\w\\W]+):([\\d]+)/#([\\w\\W]+)";
-        Pattern pattern = Pattern.compile(regexPattern);
-
         try {
-            Matcher matcher = pattern.matcher(intentData);
-            if (matcher.groupCount() < 4) {
+            Uri uri = Uri.parse(intentData);
+            if (!"ssh".equals(uri.getScheme()) || uri.getUserInfo() == null ||
+                uri.getHost() == null || uri.getPort() < 1 || uri.getFragment() == null) {
+                showErrorAndGoBackToUserland(R.string.error_regex_parsing, "Invalid SSH connection URI");
                 return;
             }
-
-            if (matcher.find()) {
-                username = matcher.group(1);
-                hostname = matcher.group(2);
-                port = matcher.group(3);
-                sessionName = matcher.group(4);
-            }
+            username = uri.getUserInfo();
+            hostname = uri.getHost();
+            port = Integer.toString(uri.getPort());
+            sessionName = uri.getFragment();
         } catch (Exception e) {
             showErrorAndGoBackToUserland(R.string.error_regex_parsing, e.getMessage());
         }
