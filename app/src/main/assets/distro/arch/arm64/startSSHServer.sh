@@ -8,7 +8,15 @@
 
 exec 2>&1
 
-echo "[sshd] starting, user=${INITIAL_USERNAME:-unknown}"
+SSH_PORT="${SERVER_PORT:-2022}"
+case "$SSH_PORT" in
+    ''|*[!0-9]*|0|[1-9][0-9][0-9][0-9][0-9]*)
+        echo "[sshd] FATAL: invalid SSH port: ${SSH_PORT:-empty}"
+        exit 1
+        ;;
+esac
+
+echo "[sshd] starting, user=${INITIAL_USERNAME:-unknown}, port=$SSH_PORT"
 
 mkdir -p /run /var/run /etc/dropbear
 
@@ -86,8 +94,8 @@ fi
 echo "[sshd] passwd entry: $(getent passwd "${INITIAL_USERNAME:-user}" 2>/dev/null || echo MISSING)"
 
 # -F foreground, -E log to stderr, -P pid file the app polls for.
-echo "[sshd] launching on port 2022"
-"$DB" -F -E -p 2022 -P /run/dropbear.pid $KEYARGS &
+echo "[sshd] launching on port $SSH_PORT"
+"$DB" -F -E -p "$SSH_PORT" -P /run/dropbear.pid $KEYARGS &
 DBPID=$!
 
 sleep 2

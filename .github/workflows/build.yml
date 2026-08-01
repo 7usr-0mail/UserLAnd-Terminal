@@ -58,9 +58,13 @@ jobs:
       - name: Build debug APK
         # --build-cache reuses task outputs across runs. abiFilters keeps the
         # APK to arm64 for test installs; remove it to ship all architectures.
-        # github.run_number increases monotonically, so every build installs
-        # over the previous one instead of being rejected as a downgrade.
-        run: ./gradlew :app:assembleDebug --stacktrace --build-cache -PversionCode=${{ github.run_number }}
+        # A timestamp-derived code is always greater than earlier local or CI
+        # builds. github.run_number is repository-local and may be lower than
+        # an APK already installed on a device, which causes Android to reject
+        # an otherwise-valid in-place update as a downgrade.
+        run: |
+          VERSION_CODE=$(( ($(date -u +%s) - 1559347200) / 10 ))
+          ./gradlew :app:assembleDebug --stacktrace --build-cache -PversionCode="$VERSION_CODE"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

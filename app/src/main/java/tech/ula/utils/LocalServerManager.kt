@@ -3,6 +3,7 @@ package tech.ula.utils
 import tech.ula.model.entities.ServiceType
 import tech.ula.model.entities.Session
 import java.io.File
+import java.net.ServerSocket
 
 class LocalServerManager(
     private val applicationFilesDirPath: String,
@@ -48,11 +49,6 @@ class LocalServerManager(
 
     fun isServerRunning(session: Session): Boolean {
         val pid = session.serverPid()
-        // Report what the readiness check is actually looking at, so a stuck
-        // session explains itself instead of just timing out.
-        if (pid <= 0) {
-            outputListener?.invoke("[service] no pid file yet at ${session.pidFilePath()}")
-        }
         val command = "support/isServerInProcTree.sh $pid"
         // The server itself is run by a third-party, so we can consider this to always be true.
         // The third-party app is responsible for handling errors starting their server.
@@ -75,6 +71,18 @@ class LocalServerManager(
         if (pidFile.exists()) pidFile.delete()
     }
 
+    private fun findAvailableSshPort(preferredPort: Long): Long {
+        val firstPort = if (preferredPort in 1024..65535) preferredPort.toInt() else DEFAULT_SSH_PORT
+        for (port in firstPort..MAX_SSH_PORT) {
+            try {
+                ServerSocket(port).use { return port.toLong() }
+            } catch (_: Exception) {
+                // This port is occupied by a previous session or another app.
+            }
+        }
+        throw IllegalStateException("No free local SSH port is available")
+    }
+
     private fun startSSHServer(session: Session): Long {
         val filesystemDirName = session.filesystemId.toString()
         deletePidFile(session)
@@ -84,6 +92,12 @@ class LocalServerManager(
         // could not verify the account exists.
         val env = HashMap<String, String>()
         env["INITIAL_USERNAME"] = session.username
+        // Dropbear binds on Android's shared network stack. A stale server from
+        // another proot cannot be seen reliably inside this proot, so choose a
+        // free local port and pass it to both server and in-app client.
+        session.port = findAvailableSshPort(session.port)
+        env["SERVER_PORT"] = session.port.toString()
+        outputListener?.invoke("[sshd] selected local port ${session.port}")
         val result = busyboxExecutor.executeProotCommand(
                 command,
                 filesystemDirName,
@@ -151,6 +165,11 @@ class LocalServerManager(
             }
             else -> -1
         }
+    }
+
+    companion object {
+        private const val DEFAULT_SSH_PORT = 2022
+        private const val MAX_SSH_PORT = 2122
     }
 
     private fun Session.pidRelativeFilePath(): String {
