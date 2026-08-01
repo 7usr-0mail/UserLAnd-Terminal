@@ -14,6 +14,7 @@ import tech.ula.model.repositories.UlaDatabase
 import tech.ula.model.entities.Session
 import tech.ula.utils.* // ktlint-disable no-wildcard-imports
 import kotlin.coroutines.CoroutineContext
+import java.io.File
 
 class ServerService : Service(), CoroutineScope {
 
@@ -30,6 +31,7 @@ class ServerService : Service(), CoroutineScope {
     private val logger: Logger = SentryLogger()
 
     private lateinit var broadcaster: LocalBroadcastManager
+    private lateinit var androidCtlBridge: AndroidCtlBridge
 
     private val notificationManager: NotificationConstructor by lazy {
         NotificationConstructor(this)
@@ -49,6 +51,7 @@ class ServerService : Service(), CoroutineScope {
 
     override fun onCreate() {
         broadcaster = LocalBroadcastManager.getInstance(this)
+        androidCtlBridge = AndroidCtlBridge(this).also { it.start() }
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -100,6 +103,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     override fun onDestroy() {
+        androidCtlBridge.stop()
         super.onDestroy()
         // Redundancy to ensure no hanging processes, given broad device spectrum.
         this.coroutineContext.cancel()
@@ -125,6 +129,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private suspend fun startSession(session: Session) {
+        androidCtlBridge.provision(session.filesystemId, File(filesDir, "${session.filesystemId}/support"))
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
         session.pid = localServerManager.startServer(session)
 
