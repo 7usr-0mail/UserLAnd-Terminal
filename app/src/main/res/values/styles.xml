@@ -72,7 +72,7 @@
         <item name="android:textAllCaps">true</item>
     </style>
 
-    <style name="preferenceTheme parent="PreferenceThemeOverlay">
+    <style name="preferenceTheme" parent="PreferenceThemeOverlay">
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/textPrimary</item>
         <item name="android:textColorSecondary">@color/textSecondary</item>
