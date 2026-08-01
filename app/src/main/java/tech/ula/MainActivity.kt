@@ -272,6 +272,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
 
     override fun onResume() {
         super.onResume()
+        PermissionHandler.offerFullStorageAccess(this)
         viewModel.handleOnResume()
     }
 
@@ -298,11 +299,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     private fun sendWikiIntent() {
         val intent = Intent("android.intent.action.VIEW", Uri.parse("https://github.com/CypherpunkArmory/UserLAnd/wiki"))
         startActivity(intent)
-    }
-
-    override fun onResume() {
-        super.onResume()
-        PermissionHandler.offerFullStorageAccess(this)
     }
 
     override fun onStop() {
