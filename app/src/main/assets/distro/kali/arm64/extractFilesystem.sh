@@ -47,6 +47,23 @@ fi
 
 STATUS=$?
 
+# Kali NetHunter rootfs archives have a top-level directory (for example
+# /kali-arm64). Flatten it while deliberately keeping pseudo-filesystem and
+# support mount points out of the guest root.
+for nested in /kali-*; do
+    if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
+        for child in "$nested"/* "$nested"/.[!.]* "$nested"/..?*; do
+            [ -e "$child" ] || continue
+            name="${child##*/}"
+            case "$name" in
+                sys|dev|proc|data|mnt|host-rootfs|support|sdcard) continue ;;
+            esac
+            $BB cp -a "$child" / 2>/dev/null
+        done
+        $BB rm -rf "$nested"
+    fi
+done
+
 # Arch and some bootstrap images nest everything one level deep.
 for nested in /root.x86_64 /archlinux-bootstrap*; do
     if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
