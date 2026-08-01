@@ -110,6 +110,9 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
                         val type = intent.getStringExtra("dialogType") ?: ""
                         showDialog(type)
                     }
+                    else -> {
+                        // Unrecognised broadcast type; nothing to do.
+                    }
                 }
             }
         }

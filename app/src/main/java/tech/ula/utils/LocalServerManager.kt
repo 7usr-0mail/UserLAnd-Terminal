@@ -77,7 +77,7 @@ class LocalServerManager(
                 command,
                 filesystemDirName,
                 commandShouldTerminate = false,
-                listener = { line -> outputListener?.invoke(line) })
+                listener = { line -> outputListener?.invoke(line) ?: Unit })
         return when (result) {
             is OngoingExecution -> result.process.pid()
             is FailedExecution -> {
