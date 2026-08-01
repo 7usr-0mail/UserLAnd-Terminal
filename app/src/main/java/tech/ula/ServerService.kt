@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.IBinder
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.* // ktlint-disable no-wildcard-imports
+import com.termux.app.TermuxService
 import tech.ula.model.entities.App
 import tech.ula.model.entities.ServiceType
 import tech.ula.model.repositories.UlaDatabase
@@ -25,6 +26,8 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private val activeSessions: MutableMap<Long, Session> = mutableMapOf()
+
+    private val logger: Logger = SentryLogger()
 
     private lateinit var broadcaster: LocalBroadcastManager
 
@@ -166,12 +169,23 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun startSshClient(session: Session) {
-        val connectBotIntent = Intent()
-        connectBotIntent.action = Intent.ACTION_VIEW
-        connectBotIntent.data = Uri.parse("ssh://${session.username}@localhost:2022/#userland")
-        connectBotIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        // Connect the bundled terminal to the session's local SSH server rather
+        // than handing off to a third-party client. TermuxService already knows
+        // how to drive the vendored dbclient with these extras; upstream simply
+        // never wired it up in this branch.
+        val termIntent = Intent(this, TermuxService::class.java)
+                .setAction(TermuxService.ACTION_EXECUTE)
+                .putExtra("username", session.username)
+                .putExtra("hostname", "localhost")
+                .putExtra("port", "${session.port}")
+                .putExtra("sessionName", session.name)
 
-        startActivity(connectBotIntent)
+        try {
+            startService(termIntent)
+        } catch (err: Exception) {
+            logger.addExceptionBreadcrumb(Exception("Could not start in-app terminal: ${err.message}"))
+            sendDialogBroadcast("unhandledSessionServiceType")
+        }
     }
 
     private fun startVncClient(session: Session, packageName: String) {

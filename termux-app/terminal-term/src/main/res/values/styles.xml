@@ -9,7 +9,8 @@
         <item name="android:windowBackground">@android:color/black</item>
 
         <!-- Seen in buttons on left drawer: -->
-        <item name="android:colorAccent">#212121</item>
+        <item name="android:colorAccent">#00FF41</item>
+        <item name="android:textColorPrimary">#00FF41</item>
         <item name="android:alertDialogTheme">@style/TermuxAlertDialogStyle</item>
         <!-- Avoid action mode toolbar pushing down terminal content when
              selecting text on pre-6.0 (non-floating toolbar). -->
@@ -23,9 +24,11 @@
         <item name="android:windowAllowEnterTransitionOverlap">true</item>
     </style>
 
-	<style name="TermuxAlertDialogStyle" parent="@android:style/Theme.Material.Light.Dialog.Alert">
-	    <!-- Seen in buttons on alert dialog: -->
-        <item name="android:colorAccent">#212121</item>
+    <!-- Matrix palette, matching the host app. -->
+    <style name="TermuxAlertDialogStyle" parent="@android:style/Theme.Material.Dialog.Alert">
+        <item name="android:colorAccent">#00FF41</item>
+        <item name="android:textColorPrimary">#00FF41</item>
+        <item name="android:windowBackground">#0D140D</item>
     </style>
 
 </resources>
