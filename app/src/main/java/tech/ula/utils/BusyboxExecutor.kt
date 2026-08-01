@@ -3,6 +3,7 @@ package tech.ula.utils
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.InputStream
@@ -110,6 +111,17 @@ class BusyboxExecutor(
                     getProcessResult(process)
                 }
                 else -> {
+                    // A long-running server: nothing ever read its output before,
+                    // so the listener was silently ignored and, worse, the pipe
+                    // buffer could fill and block the process. Drain it on a
+                    // background thread and forward each line.
+                    coroutineScope.launch(Dispatchers.IO) {
+                        try {
+                            collectOutput(process.inputStream, listener)
+                        } catch (err: Exception) {
+                            listener("[stream closed: ${'$'}err]")
+                        }
+                    }
                     OngoingExecution(process)
                 }
             }

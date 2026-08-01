@@ -638,11 +638,24 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         consoleLines.addLast(trimmed)
         while (consoleLines.size > maxConsoleLines) consoleLines.removeFirst()
 
+        // Only follow the tail if the user is already near the bottom. Scrolling
+        // unconditionally fought the user whenever they scrolled up to read
+        // something, yanking them back down on every new line.
+        val wasAtBottom = isConsoleAtBottom()
+
         text_console_output.text = consoleLines.joinToString("\n")
 
-        scroll_console.post {
-            scroll_console.fullScroll(View.FOCUS_DOWN)
+        if (wasAtBottom) {
+            scroll_console.post { scroll_console.fullScroll(View.FOCUS_DOWN) }
         }
+    }
+
+    /** True when the console is scrolled within a line or two of the end. */
+    private fun isConsoleAtBottom(): Boolean {
+        val child = scroll_console.getChildAt(0) ?: return true
+        val bottomEdge = child.height - scroll_console.height - scroll_console.scrollY
+        // Treat 'close enough' as at-bottom so rounding does not strand the user.
+        return bottomEdge <= 80
     }
 
     private fun resetConsole() {
