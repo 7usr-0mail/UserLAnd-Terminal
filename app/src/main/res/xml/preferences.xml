@@ -31,12 +31,7 @@
             android:inputType="number"
             android:defaultValue="1"
             app:iconSpaceReserved="false"/>
-        <CheckBoxPreference
-            android:key="pref_opt_in"
-            android:title="@string/opt_in_preference"
-            android:summary="@string/opt_in_preference_summary"
-            android:defaultValue="false"
-            app:iconSpaceReserved="false" />
+
     </PreferenceCategory>
     <PreferenceCategory
         android:title="@string/pref_proot_category"

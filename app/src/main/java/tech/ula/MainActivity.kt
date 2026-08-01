@@ -78,14 +78,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         NotificationConstructor(this)
     }
 
-    private val userFeedbackPrompter by lazy {
-        UserFeedbackPrompter(this, findViewById(R.id.layout_user_prompt_insert))
-    }
-
-    private val optInPrompter by lazy {
-        CollectionOptInPrompter(this, findViewById(R.id.layout_user_prompt_insert))
-    }
-
     private val downloadBroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
@@ -171,20 +163,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
 
         setupWithNavController(bottom_nav_view, navController)
 
-        if (userFeedbackPrompter.viewShouldBeShown()) {
-            userFeedbackPrompter.showView()
-        }
-
-        if (optInPrompter.viewShouldBeShown()) {
-            optInPrompter.showView()
-        }
-
-        handleQWarning()
-
-        if (optInPrompter.userHasOptedIn()) {
-            logger.initialize(this)
-        }
-
         viewModel.getState().observe(this, stateObserver)
         if (intent?.type.equals("settings"))
             navController.navigate(R.id.settings_fragment)
@@ -221,11 +199,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
                     .setMessage(R.string.q_warning_message)
                     .setPositiveButton(R.string.button_ok) { dialog, _ ->
                         dialog.dismiss()
-                    }
-                    .setNeutralButton(R.string.wiki) {
-                        dialog, _ ->
-                        dialog.dismiss()
-                        sendWikiIntent()
                     }
                     .create().show()
             handler.messageHasBeenDisplayed()
@@ -280,13 +253,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.terms_and_conditions) {
-            val intent = Intent("android.intent.action.VIEW", Uri.parse("https://github.com/cypherpunkarmory/userland/blob/master/LICENSE"))
-            startActivity(intent)
-        }
-        if (item.itemId == R.id.option_wiki) {
-            sendWikiIntent()
-        }
         if (item.itemId == R.id.clear_support_files) {
             displayClearSupportFilesDialog()
         }
@@ -295,10 +261,6 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
                 super.onOptionsItemSelected(item)
     }
 
-    private fun sendWikiIntent() {
-        val intent = Intent("android.intent.action.VIEW", Uri.parse("https://github.com/CypherpunkArmory/UserLAnd/wiki"))
-        startActivity(intent)
-    }
 
     override fun onStop() {
         super.onStop()
