@@ -1,19 +1,82 @@
 #!/support/common/busybox_static sh
+#
+# Extract a root filesystem and adapt it for proot.
+#
+# NOTE ON PATHS: this is the *global* script, bound at /support/common by
+# execInProot.sh, and it is the one FilesystemManager actually invokes. The
+# per-distribution copy under /support is not executed directly.
+#
+# This fork downloads pristine tarballs from each distribution's official
+# archive, so we must cope with the formats those archives publish
+# (.tar.gz, .tar.xz, .tar.zst) and run the bootstrap pass afterwards, because
+# official images assume a real kernel with systemd and ship no SSH server.
 
+BB=/support/common/busybox_static
+
+# Reassemble a split download if necessary.
 if [ ! -f /support/rootfs.tar.gz ]; then
-   /support/common/busybox_static cat /support/rootfs.tar.gz.part* > /support/rootfs.tar.gz 
-   /support/common/busybox_static rm -f /support/rootfs.tar.gz.part*
+    $BB cat /support/rootfs.tar.gz.part* > /support/rootfs.tar.gz
+    $BB rm -f /support/rootfs.tar.gz.part*
 fi
 
-ln -s /support/common/busybox_static /support/common/gzip
-export PATH=/support/common/gzip:$PATH
+ARCHIVE=/support/rootfs.tar.gz
 
-/support/common/busybox_static tar -xzvf /support/rootfs.tar.gz --exclude sys --exclude dev --exclude proc --exclude data --exclude mnt --exclude host-rootfs --exclude support --exclude sdcard --exclude etc/mtab --exclude usr/local/bin/sudo --exclude etc/profile.d/userland_profile.sh --exclude etc/ld.so.preload -C /
+$BB ln -sf /support/common/busybox_static /support/common/gzip
+export PATH=/support/common:$PATH
 
-if [[ $? == 0 ]]; then
-	/support/common/addNonRootUser.sh
-	/support/common/busybox_static rm /support/rootfs.tar.gz
-	/support/common/busybox_static touch /support/.success_filesystem_extraction
+# Identify the real compression format regardless of the filename.
+MAGIC="$($BB od -An -tx1 -N6 "$ARCHIVE" 2>/dev/null | $BB tr -d ' \n')"
+case "$MAGIC" in
+    1f8b*)       DECOMP="-z" ;;    # gzip
+    fd377a585a*) DECOMP="-J" ;;    # xz
+    28b52ffd*)   DECOMP="zstd" ;;  # zstd
+    425a68*)     DECOMP="-j" ;;    # bzip2
+    *)           DECOMP="-z" ;;
+esac
+
+EXCLUDES="--exclude sys --exclude dev --exclude proc --exclude data \
+--exclude mnt --exclude host-rootfs --exclude support --exclude sdcard \
+--exclude etc/mtab --exclude etc/ld.so.preload"
+
+if [ "$DECOMP" = "zstd" ]; then
+    $BB tar -xa -f "$ARCHIVE" $EXCLUDES -C /
 else
-	/support/common/busybox_static touch /support/.failure_filesystem_extraction
+    $BB tar -x $DECOMP -v -f "$ARCHIVE" $EXCLUDES -C /
+fi
+
+STATUS=$?
+
+# Arch and some bootstrap images nest the tree one level deep.
+for nested in /root.x86_64 /root.aarch64 /root.armv7; do
+    if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
+        $BB cp -a "$nested"/. / 2>/dev/null
+        $BB rm -rf "$nested"
+    fi
+done
+
+if [ "$STATUS" -eq 0 ]; then
+    # Adapt the pristine official image for proot. This is what installs the
+    # SSH server the session depends on, so a failure here must be fatal
+    # rather than leaving a filesystem that can never start a session.
+    if [ -x /support/bootstrapOfficialRootfs.sh ]; then
+        /support/bootstrapOfficialRootfs.sh
+        BOOTSTRAP_STATUS=$?
+    elif [ -x /support/common/bootstrapOfficialRootfs.sh ]; then
+        /support/common/bootstrapOfficialRootfs.sh
+        BOOTSTRAP_STATUS=$?
+    else
+        echo "[extract] WARNING: bootstrap script not found, falling back"
+        /support/common/addNonRootUser.sh
+        BOOTSTRAP_STATUS=$?
+    fi
+
+    if [ "$BOOTSTRAP_STATUS" -eq 0 ]; then
+        $BB rm -f "$ARCHIVE"
+        $BB touch /support/.success_filesystem_extraction
+    else
+        echo "[extract] Bootstrap failed; marking extraction failed so it retries."
+        $BB touch /support/.failure_filesystem_extraction
+    fi
+else
+    $BB touch /support/.failure_filesystem_extraction
 fi

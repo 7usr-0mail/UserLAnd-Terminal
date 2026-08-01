@@ -225,8 +225,14 @@ setup_base_files
 setup_package_mirror
 setup_apt_for_proot
 setup_user
-install_ssh_server
 setup_profile
+
+# The session cannot start without an SSH server, so this determines the exit
+# status. Anything above is best-effort; this is the hard requirement.
+if ! install_ssh_server; then
+    log "Bootstrap FAILED: no SSH server installed."
+    exit 1
+fi
 
 # Service-manager shim (systemctl/service replacements) if it was staged.
 if [ -x /support/installServiceManager.sh ]; then
