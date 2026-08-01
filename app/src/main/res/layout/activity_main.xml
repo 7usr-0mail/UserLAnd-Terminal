@@ -38,13 +38,17 @@
         app:layout_constraintEnd_toEndOf="parent"
         app:defaultNavHost="true" />
 
+    <!--
+        Console-style progress overlay. Every line of tar/apt output is already
+        streamed to the UI; previously only the newest line was shown, truncated
+        to one line at 40% opacity. Now it scrolls like a real terminal.
+    -->
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layout_progress"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:animateLayoutChanges="true"
-        android:alpha="0.4"
-        android:background="#000000"
+        android:background="@color/matrixBlack"
         android:visibility="gone"
         android:clickable="true"
         android:focusable="true"
@@ -53,37 +57,75 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
-        <ProgressBar
-            style="@style/Widget.AppCompat.ProgressBar"
-            android:id="@+id/progress_bar_session_list"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:indeterminate="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"/>
-
         <TextView
             android:id="@+id/text_session_list_progress_step"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            app:layout_constraintTop_toBottomOf="@id/progress_bar_session_list"
-            app:layout_constraintBottom_toTopOf="@+id/text_session_list_progress_details"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="2dp"
+            android:fontFamily="monospace"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@color/matrixGreen"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
+
+        <ProgressBar
+            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+            android:id="@+id/progress_bar_session_list"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginStart="10dp"
+            android:layout_marginEnd="10dp"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/matrixGreen"
+            app:layout_constraintTop_toBottomOf="@id/text_session_list_progress_step"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+
+        <ScrollView
+            android:id="@+id/scroll_console"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_margin="8dp"
+            android:background="@color/matrixSurface"
+            android:padding="8dp"
+            android:scrollbars="vertical"
+            android:scrollbarThumbVertical="@color/matrixGreenDim"
+            app:layout_constraintTop_toBottomOf="@id/progress_bar_session_list"
+            app:layout_constraintBottom_toTopOf="@id/text_session_list_progress_details"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <TextView
+                android:id="@+id/text_console_output"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="11sp"
+                android:textColor="@color/matrixGreenMid"
+                android:textIsSelectable="true"
+                android:lineSpacingMultiplier="1.1" />
+
+        </ScrollView>
 
         <TextView
             android:id="@+id/text_session_list_progress_details"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="4dp"
-            android:gravity="center"
+            android:paddingStart="10dp"
+            android:paddingEnd="10dp"
+            android:paddingBottom="10dp"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:textColor="@color/matrixGreen"
             android:ellipsize="end"
             android:maxLines="1"
             android:singleLine="true"
-            app:layout_constraintTop_toBottomOf="@id/text_session_list_progress_step"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 

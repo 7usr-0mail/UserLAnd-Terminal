@@ -554,8 +554,9 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             }
             is FilesystemExtractionStep -> {
                 val step = getString(R.string.progress_setting_up_filesystem)
-                val details = getString(R.string.progress_extraction_details, state.extractionTarget)
-                updateProgressBar(step, details)
+                // The raw tar/apt/bootstrap line is far more informative than a
+                // formatted summary, so stream it straight into the console.
+                updateProgressBar(step, state.extractionTarget)
             }
             is ClearingSupportFiles -> {
                 val step = getString(R.string.progress_clearing_support_files)
@@ -596,14 +597,53 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         }
     }
 
+    // Rolling console buffer. Capped so a long extraction cannot grow the
+    // TextView unboundedly and stall the UI thread.
+    private val consoleLines = ArrayDeque<String>()
+    private val maxConsoleLines = 300
+    private var lastConsoleStep = ""
+
     private fun updateProgressBar(step: String, details: String) {
         displayProgressBar()
 
-        text_session_list_progress_step.text = step
-        text_session_list_progress_details.text = details
+        if (step != lastConsoleStep) {
+            lastConsoleStep = step
+            appendConsoleLine("\n$ $step")
+        }
+
+        text_session_list_progress_step.text = "> $step"
+        text_session_list_progress_details.text =
+                if (details.isBlank()) "" else "  $details"
+
+        if (details.isNotBlank()) appendConsoleLine(details)
+    }
+
+    /**
+     * Appends a line to the console overlay and keeps it scrolled to the bottom,
+     * so setup reads like a terminal rather than a single truncated status line.
+     */
+    private fun appendConsoleLine(line: String) {
+        val trimmed = line.trimEnd()
+        if (trimmed.isEmpty() && consoleLines.lastOrNull()?.isEmpty() == true) return
+
+        consoleLines.addLast(trimmed)
+        while (consoleLines.size > maxConsoleLines) consoleLines.removeFirst()
+
+        text_console_output.text = consoleLines.joinToString("\n")
+
+        scroll_console.post {
+            scroll_console.fullScroll(View.FOCUS_DOWN)
+        }
+    }
+
+    private fun resetConsole() {
+        consoleLines.clear()
+        lastConsoleStep = ""
+        text_console_output.text = ""
     }
 
     private fun killProgressBar() {
+        resetConsole()
         val outAnimation = AlphaAnimation(1f, 0f)
         outAnimation.duration = 200
         layout_progress.animation = outAnimation
