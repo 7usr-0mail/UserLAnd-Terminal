@@ -46,6 +46,20 @@ fi
 
 STATUS=$?
 
+# Kali NetHunter archives place the actual root under /kali-<arch>.
+# Flatten that directory before bootstrap; otherwise /etc and /usr are absent.
+for nested in /kali-*; do
+    if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
+        echo "[extract] Flattening Kali root: $nested"
+        $BB cp -a "$nested"/. / || STATUS=1
+        $BB rm -rf "$nested"
+    fi
+done
+if [ "${DISTRIBUTION_TYPE:-}" = "kali" ] && { [ ! -x /bin/sh ] || [ ! -d /usr ]; }; then
+    echo "[extract] FATAL: Kali root layout missing /bin/sh or /usr"
+    STATUS=1
+fi
+
 # Arch and some bootstrap images nest the tree one level deep.
 for nested in /root.x86_64 /root.aarch64 /root.armv7; do
     if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
@@ -74,9 +88,10 @@ if [ "$STATUS" -eq 0 ]; then
         $BB rm -f "$ARCHIVE"
         $BB touch /support/.success_filesystem_extraction
     else
-        echo "[extract] Bootstrap failed; marking extraction failed so it retries."
+        echo "[extract] FATAL: bootstrap exited with status $BOOTSTRAP_STATUS"
         $BB touch /support/.failure_filesystem_extraction
     fi
 else
+    echo "[extract] FATAL: archive extraction exited with status $STATUS"
     $BB touch /support/.failure_filesystem_extraction
 fi
