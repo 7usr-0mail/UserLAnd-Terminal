@@ -121,6 +121,11 @@
         </receiver>
 
         <service
+            android:name=".ProcessingForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+
+        <service
             android:name=".ServerService"
             android:foregroundServiceType="dataSync|specialUse"
             android:stopWithTask="true">

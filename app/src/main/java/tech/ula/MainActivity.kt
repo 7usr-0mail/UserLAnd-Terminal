@@ -627,6 +627,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     private var userIsFollowingTail = true
 
     private fun updateProgressBar(step: String, details: String) {
+        ProcessingForegroundService.update(this, step)
         displayProgressBar()
 
         if (step != lastConsoleStep) {
@@ -706,6 +707,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
     }
 
     private fun killProgressBar() {
+        ProcessingForegroundService.stop(this)
         // Deliberately not clearing the console here: on failure the dialog
         // closes the overlay, and wiping the log would destroy the only record
         // of why. It is cleared when the next run starts instead.
