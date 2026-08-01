@@ -5,9 +5,12 @@ import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
+import android.provider.Settings
+import android.net.Uri
 import androidx.core.content.ContextCompat
 import tech.ula.R
 
@@ -80,6 +83,27 @@ class PermissionHandler {
          * True when the app can read and write arbitrary shared storage. Used only
          * for optional features such as exporting a filesystem backup.
          */
+        /** Prompt once for Android's special All files access capability. */
+        fun offerFullStorageAccess(activity: Activity) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R || hasFullStorageAccess(activity)) return
+            val preferences = activity.getSharedPreferences("terminal_permissions", Context.MODE_PRIVATE)
+            if (preferences.getBoolean("full_storage_prompted", false)) return
+            AlertDialog.Builder(activity)
+                    .setTitle("Full terminal storage access")
+                    .setMessage("Allow All files access to make shared internal storage available in Linux at /storage/shared. This does not grant root or access to other apps' private data.")
+                    .setPositiveButton("Open Android settings") { dialog, _ ->
+                        preferences.edit().putBoolean("full_storage_prompted", true).apply()
+                        activity.startActivity(Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+                                Uri.parse("package:${activity.packageName}")))
+                        dialog.dismiss()
+                    }
+                    .setNegativeButton(R.string.alert_permissions_necessary_cancel_button) { dialog, _ ->
+                        preferences.edit().putBoolean("full_storage_prompted", true).apply()
+                        dialog.dismiss()
+                    }
+                    .show()
+        }
+
         fun hasFullStorageAccess(context: Context): Boolean {
             return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Environment.isExternalStorageManager()

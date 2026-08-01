@@ -2,6 +2,7 @@ package tech.ula.utils
 
 import android.content.Context
 import android.os.Build
+import android.os.Environment
 import android.system.Os
 import java.io.File
 import java.lang.NullPointerException
@@ -17,6 +18,9 @@ class UlaFiles(
     val supportDir: File = File(filesDir, "support")
     val emulatedScopedDir = context.getExternalFilesDir(null) ?: context.filesDir
     val emulatedUserDir = File(emulatedScopedDir, "storage")
+
+    /** Shared storage root, bindable only after the user grants All files access. */
+    val sharedStorageRoot: File = Environment.getExternalStorageDirectory()
 
     val sdCardScopedDir: File? = resolveSdCardScopedStorage(context)
     val sdCardUserDir: File? = if (sdCardScopedDir != null) {

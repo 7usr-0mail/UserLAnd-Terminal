@@ -6,6 +6,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
+import android.os.Build
+import android.os.Environment
 import java.io.InputStream
 
 sealed class ExecutionResult
@@ -183,7 +185,15 @@ class BusyboxWrapper(private val ulaFiles: UlaFiles) {
         val externalStorageBinding = ulaFiles.sdCardUserDir?.run {
             "-b ${this.absolutePath}:/storage/sdcard"
         } ?: ""
-        val bindings = "$emulatedStorageBinding $externalStorageBinding"
+        // Scoped storage is always available at /storage/internal. On Android 11+
+        // the user can additionally grant All files access; only then expose the
+        // complete shared-storage root to the terminal. This cannot expose
+        // protected app-private /data directories without root.
+        val sharedStorageBinding = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R ||
+                Environment.isExternalStorageManager()) {
+            "-b ${ulaFiles.sharedStorageRoot.absolutePath}:/storage/shared"
+        } else ""
+        val bindings = "$emulatedStorageBinding $externalStorageBinding $sharedStorageBinding"
         return hashMapOf(
                 "LD_LIBRARY_PATH" to ulaFiles.supportDir.absolutePath,
                 "LIB_PATH" to ulaFiles.supportDir.absolutePath,

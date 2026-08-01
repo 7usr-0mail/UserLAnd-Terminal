@@ -161,6 +161,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        window.decorView.post { PermissionHandler.offerFullStorageAccess(this) }
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
         notificationManager.createServiceNotificationChannel() // Android O requirement
