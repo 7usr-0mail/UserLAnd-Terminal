@@ -10,7 +10,7 @@
 #
 # Environment supplied by FilesystemManager:
 #   INITIAL_USERNAME, INITIAL_PASSWORD, INITIAL_VNC_PASSWORD
-#   DISTRIBUTION_TYPE   ubuntu | debian | alpine | arch
+#   DISTRIBUTION_TYPE   ubuntu | debian | alpine | arch | kali
 #   PACKAGE_MIRROR      official archive URL for this distro/arch
 
 BB=/support/common/busybox_static
@@ -79,6 +79,11 @@ setup_package_mirror() {
 			deb http://security.debian.org/debian-security $CODENAME-security main contrib non-free
 			EOF
             ;;
+        kali)
+            cat > /etc/apt/sources.list <<-EOF
+			deb $MIRROR kali-rolling main contrib non-free non-free-firmware
+			EOF
+            ;;
         alpine)
             cat > /etc/apk/repositories <<-EOF
 			$MIRROR
@@ -96,7 +101,7 @@ setup_package_mirror() {
 # ---------------------------------------------------------------------------
 setup_apt_for_proot() {
     case "$DISTRO" in
-        ubuntu|debian) ;;
+        ubuntu|debian|kali) ;;
         *) return ;;
     esac
     log "Adapting apt/dpkg for proot"
@@ -184,7 +189,7 @@ install_ssh_server() {
     log "Installing SSH server from the official archive (this takes a few minutes)"
 
     case "$DISTRO" in
-        ubuntu|debian)
+        ubuntu|debian|kali)
             export DEBIAN_FRONTEND=noninteractive
             apt-get update 2>&1
             # dropbear-bin is the server; sudo makes the session usable.

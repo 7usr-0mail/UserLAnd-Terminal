@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit
  *   Debian  -> deb.debian.org / debuerreotype           (Debian project)
  *   Alpine  -> dl-cdn.alpinelinux.org                   (Alpine project)
  *   Arch    -> os-archive / geo mirror                  (Arch Linux ARM / Arch)
+ *   Kali    -> kali.download NetHunter rootfs           (Kali project)
  *
  * Each resolver discovers the newest published build by parsing the archive's
  * own directory index, so the app keeps working as new point releases land
@@ -52,6 +53,10 @@ class OfficialArchiveResolver(
         // Arch Linux ARM official downloads, and Arch's official bootstrap archive.
         const val ARCH_ARM = "http://os-archive.archlinuxarm.org/os"
         const val ARCH_X86_BOOTSTRAP = "https://geo.mirror.pkgbuild.com/iso/latest"
+
+        // Kali project's official NetHunter rootfs archive and rolling package mirror.
+        const val KALI_NETHUNTER_ROOTFS = "https://kali.download/nethunter-images/current/rootfs"
+        const val KALI_ARCHIVE = "http://http.kali.org/kali"
 
         // Fallback pinned versions, used when directory listing cannot be reached.
         const val UBUNTU_FALLBACK_RELEASE = "24.04"
@@ -107,6 +112,7 @@ class OfficialArchiveResolver(
             "debian" -> debianRootFsUrl(arch)
             "alpine" -> alpineRootFsUrl(arch)
             "arch" -> archRootFsUrl(arch)
+            "kali" -> kaliRootFsUrl(arch)
             else -> throw IOException("No official archive is known for: $distributionType")
         }
     }
@@ -175,6 +181,18 @@ class OfficialArchiveResolver(
         }
     }
 
+    /** Kali publishes these proot-ready NetHunter Nano rootfs images itself. */
+    private fun kaliRootFsUrl(arch: String): String {
+        val a = when (arch) {
+            "arm64" -> "arm64"
+            "arm" -> "armhf"
+            "x86_64" -> "amd64"
+            "x86" -> "i386"
+            else -> throw IOException("Unsupported architecture for Kali: $arch")
+        }
+        return "$KALI_NETHUNTER_ROOTFS/kali-nethunter-rootfs-nano-$a.tar.xz"
+    }
+
     /**
      * The apt/apk mirror that should be configured inside the guest filesystem,
      * always pointing at the distribution's official archive.
@@ -186,6 +204,7 @@ class OfficialArchiveResolver(
             "debian" -> DEBIAN_ARCHIVE
             "alpine" -> "$ALPINE_CDN/$ALPINE_FALLBACK_BRANCH/main"
             "arch" -> if (arch.startsWith("arm")) "http://mirror.archlinuxarm.org" else "https://geo.mirror.pkgbuild.com"
+            "kali" -> KALI_ARCHIVE
             else -> ""
         }
     }
