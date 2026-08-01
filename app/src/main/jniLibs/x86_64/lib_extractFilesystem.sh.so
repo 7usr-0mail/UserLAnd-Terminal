@@ -21,6 +21,13 @@ fi
 
 ARCHIVE=/support/rootfs.tar.gz
 
+# A previous failed Kali attempt leaves the archive in /support so it can be
+# retried. Remove only its partially-unpacked top-level directory; never delete
+# the downloaded archive or the rest of the filesystem.
+if [ "${DISTRIBUTION_TYPE:-}" = "kali" ]; then
+    $BB rm -rf /kali-arm64 /kali-armhf /kali-amd64 /kali-i386
+fi
+
 $BB ln -sf /support/common/busybox_static /support/common/gzip
 export PATH=/support/common:$PATH
 
@@ -51,6 +58,8 @@ STATUS=$?
 for nested in /kali-*; do
     if [ -d "$nested" ] && [ -d "$nested/usr" ]; then
         echo "[extract] Flattening Kali root: $nested"
+        # These are proot-managed files and must not overwrite existing mounts.
+        $BB rm -f "$nested/etc/mtab" "$nested/etc/ld.so.preload"
         # Do not copy pseudo-filesystems over proot's own mounts. Copying them
         # with cp -a tries to preserve metadata Android denies and turns an
         # otherwise successful extraction into a failure.
