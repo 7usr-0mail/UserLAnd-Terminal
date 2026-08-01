@@ -62,15 +62,51 @@ class VendoredAssetInstaller(
             }
             ulaFiles.makePermissionsUsable(destination.absolutePath, name)
         }
+
+        writeVersionStamp(distributionType)
     }
 
     /**
-     * True when every bundled asset has already been installed on disk.
+     * True when the installed assets match the ones bundled in this APK.
+     *
+     * Comparing filenames alone was not enough: after an app update the support
+     * scripts on disk still have the same names, so the installer skipped and
+     * the new scripts were never written. Every fix to startSSHServer.sh or the
+     * bootstrap was silently discarded on any device that had already run once.
+     *
+     * A stamp file records the APK's version code, so an update always
+     * reinstalls.
      */
     fun assetsAreInstalled(distributionType: String): Boolean {
         val destination = File(ulaFiles.filesDir, distributionType)
         if (!destination.isDirectory) return false
         val installed = destination.list()?.toSet() ?: return false
-        return getBundledAssetList(distributionType).all { installed.contains(it.name) }
+        if (!getBundledAssetList(distributionType).all { installed.contains(it.name) }) return false
+
+        val stamp = File(destination, ASSET_VERSION_STAMP)
+        return stamp.exists() && stamp.readText().trim() == currentAssetVersion()
+    }
+
+    private fun currentAssetVersion(): String {
+        return try {
+            val info = context.packageManager.getPackageInfo(context.packageName, 0)
+            @Suppress("DEPRECATION")
+            "${'$'}{info.versionName}-${'$'}{info.versionCode}"
+        } catch (err: Exception) {
+            "unknown"
+        }
+    }
+
+    private fun writeVersionStamp(distributionType: String) {
+        try {
+            File(File(ulaFiles.filesDir, distributionType), ASSET_VERSION_STAMP)
+                    .writeText(currentAssetVersion())
+        } catch (err: Exception) {
+            logger.addExceptionBreadcrumb(Exception("Could not write asset stamp"))
+        }
+    }
+
+    companion object {
+        private const val ASSET_VERSION_STAMP = ".asset_version"
     }
 }

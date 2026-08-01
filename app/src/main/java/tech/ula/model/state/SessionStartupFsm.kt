@@ -236,7 +236,14 @@ class SessionStartupFsm(
         val lastDownloadedAssetVersion = assetRepository.getLatestDistributionVersion(filesystem.distributionType)
         val filesystemAssetsNeedUpdating = filesystem.versionCodeUsed < lastDownloadedAssetVersion
 
-        if (!allAssetsArePresentOnFilesystem || filesystemAssetsNeedUpdating) {
+        // Both checks above only test that files with the right *names* exist.
+        // After an app update the support scripts on disk have the same names
+        // but stale contents, so fixes to startSSHServer.sh and friends were
+        // never copied into existing filesystems. Force a refresh whenever the
+        // shared support directory is newer than the filesystem's copy.
+        val supportIsStale = filesystemManager.supportAssetsAreStale(filesystem)
+
+        if (!allAssetsArePresentOnFilesystem || filesystemAssetsNeedUpdating || supportIsStale) {
             if (!assetRepository.assetsArePresentInSupportDirectories(requiredAssets)) {
                 state.postValue(AssetsAreMissingFromSupportDirectories)
                 return@withContext

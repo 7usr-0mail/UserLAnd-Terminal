@@ -40,6 +40,31 @@ class FilesystemManager(
         }
     }
 
+    /**
+     * True when the shared support directory holds a newer copy of any script
+     * than the filesystem's own support directory.
+     *
+     * Existence-only checks meant an app update never refreshed these files, so
+     * fixes to startSSHServer.sh or the bootstrap were silently ignored on any
+     * device that had already created a filesystem.
+     */
+    fun supportAssetsAreStale(filesystem: Filesystem): Boolean {
+        val shared = File("$filesDirPath/${filesystem.distributionType}")
+        val target = File("$filesDirPath/${filesystem.id}/support")
+        if (!shared.isDirectory) return false
+        if (!target.isDirectory) return true
+
+        val sharedFiles = shared.listFiles() ?: return false
+        for (file in sharedFiles) {
+            if (file.name.contains("rootfs")) continue
+            val copied = File(target, file.name)
+            if (!copied.exists()) return true
+            if (file.lastModified() > copied.lastModified()) return true
+            if (file.length() != copied.length()) return true
+        }
+        return false
+    }
+
     fun removeRootfsFilesFromFilesystem(targetFilesystemName: String) {
         val supportDirectory = File(getSupportDirectoryPath(targetFilesystemName))
         supportDirectory.walkBottomUp().forEach {
