@@ -5,6 +5,7 @@ import android.annotation.TargetApi
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.admin.DevicePolicyManager
+import android.app.AppOpsManager
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
@@ -12,6 +13,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Environment
 import android.os.PowerManager
+import android.provider.MediaStore
 import android.provider.Settings
 import android.net.Uri
 import androidx.core.content.ContextCompat
@@ -121,6 +123,38 @@ class PermissionHandler {
                 }
                 return
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !MediaStore.canManageMedia(activity) &&
+                    !preferences.getBoolean("media_manage_seen_v2", false)) {
+                showCapabilityDialog(activity, "Manage shared media",
+                        "Allow the terminal bridge to manage photos, video, and audio in shared storage.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("media_manage_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_REQUEST_MANAGE_MEDIA,
+                            Uri.parse("package:${activity.packageName}")))
+                }
+                return
+            }
+            if (!hasUsageAccess(activity) && !preferences.getBoolean("usage_seen_v2", false)) {
+                showCapabilityDialog(activity, "Usage access",
+                        "Allow future terminal commands to inspect app usage statistics.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("usage_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS))
+                }
+                return
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+                    !activity.packageManager.canRequestPackageInstalls() &&
+                    !preferences.getBoolean("unknown_sources_seen_v2", false)) {
+                showCapabilityDialog(activity, "Install Android packages",
+                        "Allow the terminal bridge to send APK files to Android's installer. Every install still requires Android confirmation.",
+                        "Open Android settings") {
+                    preferences.edit().putBoolean("unknown_sources_seen_v2", true).apply()
+                    activity.startActivity(Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                            Uri.parse("package:${activity.packageName}")))
+                }
+                return
+            }
             if (!isDeviceAdminActive(activity) && !preferences.getBoolean("admin_seen_v2", false)) {
                 showCapabilityDialog(activity, "Enable Device Administrator",
                         "Enable the limited Device Administrator capability. It permits device lock only; it does not grant root or wipe/reset-password access.",
@@ -164,6 +198,12 @@ class PermissionHandler {
         private fun canIgnoreBatteryOptimizations(context: Context): Boolean {
             val power = context.getSystemService(Context.POWER_SERVICE) as PowerManager
             return power.isIgnoringBatteryOptimizations(context.packageName)
+        }
+
+        private fun hasUsageAccess(context: Context): Boolean {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            return appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS,
+                    android.os.Process.myUid(), context.packageName) == AppOpsManager.MODE_ALLOWED
         }
 
         private fun isDeviceAdminActive(context: Context): Boolean {
