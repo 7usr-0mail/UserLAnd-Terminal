@@ -291,14 +291,9 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
         });
 
         findViewById(R.id.toggle_keyboard_button).setOnClickListener(v -> {
-            InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0);
-            getDrawer().closeDrawers();
-        });
-
-        findViewById(R.id.toggle_keyboard_button).setOnLongClickListener(v -> {
-            toggleShowExtraKeys();
-            return true;
+            startService(new Intent(TermuxActivity.this, TermuxService.class)
+                .setAction(TermuxService.ACTION_STOP_SERVICE));
+            finish();
         });
 
         registerForContextMenu(mTerminalView);

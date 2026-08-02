@@ -63,7 +63,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
 
     private static final int NOTIFICATION_ID = 2000;
 
-    private static final String ACTION_STOP_SERVICE = "com.termux.service_stop";
+    public static final String ACTION_STOP_SERVICE = "com.termux.service_stop";
     private static final String ACTION_LOCK_WAKE = "com.termux.service_wake_lock";
     private static final String ACTION_UNLOCK_WAKE = "com.termux.service_wake_unlock";
     /** Intent action to launch a new terminal session. Executed from TermuxWidgetProvider. */
@@ -112,6 +112,10 @@ public final class TermuxService extends Service implements SessionChangedCallba
             for (int i = 0; i < mTerminalSessions.size(); i++)
                 mTerminalSessions.get(i).finishIfRunning();
             stopSelf();
+            Intent returnIntent = new Intent(this, tech.ula.MainActivity.class)
+                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .setType("sessionList");
+            startActivity(returnIntent);
         } else if (ACTION_LOCK_WAKE.equals(action)) {
             if (mWakeLock == null) {
                 PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
@@ -283,7 +287,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
         }
 
         // TODO: Replace -y -y option with a way to support hostkey checking
-        String[] dbclientArgs = {"sh", "-c", supportPath + "dbclient -T -y -y " + username + "@" + hostname + "/" + port + " /bin/bash -i"};
+        String[] dbclientArgs = {"sh", "-c", supportPath + "dbclient -T -y -y " + username + "@" + hostname + "/" + port + " /bin/bash +m -i"};
         String[] processArgs = BackgroundJob.setupProcessArgs(executablePath, dbclientArgs, prefixPath);
         executablePath = processArgs[0];
         int lastSlashIndex = executablePath.lastIndexOf('/');
