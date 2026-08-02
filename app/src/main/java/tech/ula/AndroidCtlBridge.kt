@@ -45,7 +45,9 @@ class AndroidCtlBridge(private val context: Context) {
             it.getOutputStream().writer().apply { write("ERROR unauthorized\n"); flush() }; return
         }
         val result = when (parts.drop(1).joinToString(" ")) {
-            "network status", "network local-ip" -> networkStatus()
+            "network status", "network local-ip", "ip", "ip addr" -> networkStatus()
+            "ip route" -> networkRoute()
+            "ip public" -> publicIp()
             "storage status" -> storageStatus()
             else -> "ERROR unsupported command"
         }
@@ -63,6 +65,21 @@ class AndroidCtlBridge(private val context: Context) {
         }
         val addresses = cm.getLinkProperties(network)?.linkAddresses?.joinToString(" ") { it.address.hostAddress } ?: ""
         return "network=$type local_ip=$addresses"
+    }
+
+    private fun networkRoute(): String {
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = cm.activeNetwork ?: return "offline"
+        return cm.getLinkProperties(network)?.routes?.joinToString(" ") { it.toString() } ?: "route unavailable"
+    }
+
+    private fun publicIp(): String {
+        return try {
+            val value = java.net.URL("https://api.ipify.org").openConnection().apply {
+                connectTimeout = 8000; readTimeout = 8000
+            }.getInputStream().bufferedReader().use { it.readText().trim() }
+            "public_ip=$value"
+        } catch (err: Exception) { "ERROR public IP lookup failed: ${err.message}" }
     }
 
     private fun storageStatus(): String {

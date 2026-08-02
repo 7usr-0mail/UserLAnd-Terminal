@@ -1,0 +1,6 @@
+#!/bin/sh
+# Android system bridge. Standard Linux commands remain untouched.
+TOKEN_FILE=/support/.androidctl_token
+[ -r "$TOKEN_FILE" ] || { echo "android: bridge is available after a session starts" >&2; exit 1; }
+TOKEN=$(cat "$TOKEN_FILE")
+printf '%s %s\n' "$TOKEN" "$*" | /support/busybox nc -w 8 127.0.0.1 47223
