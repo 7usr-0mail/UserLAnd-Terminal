@@ -35,7 +35,7 @@ class AndroidCtlBridge(private val context: Context) {
 
     fun stop() { try { server?.close() } catch (_: Exception) {} }
 
-    fun provision(filesystemId: Long, supportDir: File) {
+    fun provision(filesystemId: Long, supportDir: File, username: String) {
         val token = ByteArray(24).also { SecureRandom().nextBytes(it) }
                 .joinToString("") { "%02x".format(it) }
         tokens[token] = filesystemId
@@ -46,8 +46,17 @@ TOKEN_FILE=/support/.androidctl_token
 [ -r "${'$'}TOKEN_FILE" ] || { echo "android: bridge is available after a session starts" >&2; exit 1; }
 printf '%s %s\n' "${'$'}(cat "${'$'}TOKEN_FILE")" "${'$'}*" | /support/busybox nc -w 8 127.0.0.1 $PORT
 """
+        val binDir = File(supportDir.parentFile, "usr/local/bin").apply { mkdirs() }
         for (name in listOf("android", "androidctl")) {
             File(supportDir, name).apply { writeText(wrapper); setExecutable(true, false) }
+            File(binDir, name).apply { writeText(wrapper); setExecutable(true, false) }
+        }
+        // Existing Debian-family filesystems were created before prompt support
+        // was added. Enable their own native colored Bash prompt in place.
+        for (rc in listOf(File(supportDir.parentFile, "home/$username/.bashrc"),
+                File(supportDir.parentFile, "root/.bashrc"))) {
+            if (rc.isFile) rc.writeText(rc.readText().replace(
+                    "#force_color_prompt=yes", "force_color_prompt=yes"))
         }
     }
 

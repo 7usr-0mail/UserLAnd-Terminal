@@ -130,7 +130,7 @@ class ServerService : Service(), CoroutineScope {
 
     private suspend fun startSession(session: Session) {
         LocalSessionTrace.append(this, "START session=${session.name} fs=${session.filesystemId} user=${session.username} port=${session.port}")
-        androidCtlBridge.provision(session.filesystemId, File(filesDir, "${session.filesystemId}/support"))
+        androidCtlBridge.provision(session.filesystemId, File(filesDir, "${session.filesystemId}/support"), session.username)
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
         session.pid = localServerManager.startServer(session)
 
