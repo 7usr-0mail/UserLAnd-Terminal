@@ -129,6 +129,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private suspend fun startSession(session: Session) {
+        LocalSessionTrace.append(this, "START session=${session.name} fs=${session.filesystemId} user=${session.username} port=${session.port}")
         androidCtlBridge.provision(session.filesystemId, File(filesDir, "${session.filesystemId}/support"))
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
         session.pid = localServerManager.startServer(session)
@@ -190,6 +191,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun startSshClient(session: Session) {
+        LocalSessionTrace.append(this, "OPEN terminal client session=${session.name} port=${session.port}")
         // Launch the activity with its documented ssh:// URI. Starting
         // TermuxService directly first caused it to open TermuxActivity without
         // connection data; that activity then overwrote the service fields with
@@ -266,6 +268,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun sendServerOutputBroadcast(line: String) {
+        LocalSessionTrace.append(this, "SERVER $line")
         val intent = Intent(SERVER_SERVICE_RESULT)
                 .putExtra("type", "serverOutput")
                 .putExtra("line", line)
@@ -273,6 +276,7 @@ class ServerService : Service(), CoroutineScope {
     }
 
     private fun sendDialogBroadcast(type: String) {
+        LocalSessionTrace.append(this, "DIALOG $type")
         val intent = Intent(SERVER_SERVICE_RESULT)
                 .putExtra("type", "dialog")
                 .putExtra("dialogType", type)
