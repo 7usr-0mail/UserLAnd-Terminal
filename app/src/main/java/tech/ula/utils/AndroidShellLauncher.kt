@@ -154,7 +154,10 @@ class AndroidShellLauncher(
                             "/bin/su", "-", username, "-s", "/bin/bash", "-c", "exec /bin/bash -i"), env.toTypedArray(), callback)
             session.updateSize(80, 24)
             session
-        } catch (err: Exception) { null }
+        } catch (err: Exception) {
+            tech.ula.LocalSessionTrace.append(context, "LOCAL proot failure: ${err.javaClass.simpleName}: ${err.message}")
+            null
+        }
     }
 
     /**

@@ -77,9 +77,11 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     }
 
     private fun startShell() {
+        if (localFilesystemId >= 0) LocalSessionTrace.append(this, "LOCAL launch fs=$localFilesystemId user=$localUsername")
         val result = if (localFilesystemId >= 0) launcher.createProotSession(this, localFilesystemId, localUsername)
                 else launcher.createSession(this)
         if (result == null) {
+            if (localFilesystemId >= 0) LocalSessionTrace.append(this, "LOCAL launch returned null")
             AlertDialog.Builder(this)
                     .setTitle(R.string.android_shell_failed_title)
                     .setMessage(R.string.android_shell_failed_message)
