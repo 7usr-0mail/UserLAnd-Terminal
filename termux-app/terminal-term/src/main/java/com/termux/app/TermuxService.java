@@ -7,6 +7,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
+import android.content.pm.ServiceInfo;
 import android.content.Intent;
 import android.content.res.Resources;
 import android.net.wifi.WifiManager;
@@ -166,7 +167,14 @@ public final class TermuxService extends Service implements SessionChangedCallba
         supportPath = filesPath + "/support/";
         prefixPath = filesPath + "/usr";
         homePath = filesPath + "/home";
-        startForeground(NOTIFICATION_ID, buildNotification());
+        // Android 14+ rejects the two-argument form when targetSdk is 34.
+        // Explicitly match the manifest's specialUse declaration.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(NOTIFICATION_ID, buildNotification(),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification());
+        }
     }
 
     /** Update the shown foreground service notification after making any changes that affect it. */
@@ -275,7 +283,7 @@ public final class TermuxService extends Service implements SessionChangedCallba
         }
 
         // TODO: Replace -y -y option with a way to support hostkey checking
-        String[] dbclientArgs = {"sh", "-c", supportPath + "dbclient -y -y " + username + "@" + hostname + "/" + port};
+        String[] dbclientArgs = {"sh", "-c", supportPath + "dbclient -T -y -y " + username + "@" + hostname + "/" + port};
         String[] processArgs = BackgroundJob.setupProcessArgs(executablePath, dbclientArgs, prefixPath);
         executablePath = processArgs[0];
         int lastSlashIndex = executablePath.lastIndexOf('/');
