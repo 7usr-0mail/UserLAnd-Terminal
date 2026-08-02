@@ -41,6 +41,14 @@ class AndroidCtlBridge(private val context: Context) {
         tokens[token] = filesystemId
         supportDir.mkdirs()
         File(supportDir, ".androidctl_token").writeText(token)
+        val wrapper = """#!/bin/sh
+TOKEN_FILE=/support/.androidctl_token
+[ -r "${'$'}TOKEN_FILE" ] || { echo "android: bridge is available after a session starts" >&2; exit 1; }
+printf '%s %s\n' "${'$'}(cat "${'$'}TOKEN_FILE")" "${'$'}*" | /support/busybox nc -w 8 127.0.0.1 $PORT
+"""
+        for (name in listOf("android", "androidctl")) {
+            File(supportDir, name).apply { writeText(wrapper); setExecutable(true, false) }
+        }
     }
 
     private fun handle(socket: Socket) {

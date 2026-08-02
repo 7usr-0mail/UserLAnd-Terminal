@@ -7,4 +7,5 @@
     android:gravity="start|center_vertical"
     android:padding="6dip"
     android:textSize="14sp"
-    android:textColor="#00FF41" />
+    android:textColor="#00FF41"
+    android:background="@drawable/selected_session_background" />
