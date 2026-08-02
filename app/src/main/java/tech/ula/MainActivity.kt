@@ -563,7 +563,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
             inAnimation.duration = 200
             layout_progress.animation = inAnimation
 
-            text_console_output.isTextSelectable = true
+            text_console_output.setTextIsSelectable(true)
             layout_progress.visibility = View.VISIBLE
             layout_progress.isFocusable = true
             layout_progress.isClickable = true
@@ -678,7 +678,7 @@ class MainActivity : AppCompatActivity(), SessionListFragment.SessionSelection, 
         outAnimation.duration = 200
         layout_progress.clearAnimation()
         text_console_output.clearFocus()
-        text_console_output.isTextSelectable = false
+        text_console_output.setTextIsSelectable(false)
         layout_progress.visibility = View.GONE
         layout_progress.isFocusable = false
         layout_progress.isClickable = false
