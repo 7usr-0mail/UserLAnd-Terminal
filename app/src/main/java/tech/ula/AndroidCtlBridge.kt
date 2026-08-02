@@ -22,7 +22,12 @@ class AndroidCtlBridge(private val context: Context) {
             try {
                 ServerSocket(PORT, 8, InetAddress.getByName("127.0.0.1")).use { socket ->
                     server = socket
-                    while (!socket.isClosed) Thread { handle(socket.accept()) }.start()
+                    while (!socket.isClosed) {
+                        // Accept exactly one connection on the listener thread,
+                        // then hand only that accepted socket to a worker.
+                        val client = try { socket.accept() } catch (_: java.net.SocketException) { break }
+                        Thread { handle(client) }.apply { isDaemon = true }.start()
+                    }
                 }
             } catch (_: Exception) { } finally { server = null }
         }.apply { isDaemon = true; start() }
