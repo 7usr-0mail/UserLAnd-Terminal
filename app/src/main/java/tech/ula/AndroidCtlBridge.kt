@@ -38,11 +38,12 @@ class AndroidCtlBridge(private val context: Context) {
         File(supportDir, ".androidctl_token").writeText(token)
     }
 
-    private fun handle(socket: Socket) = socket.use {
-        val line = it.getInputStream().bufferedReader().readLine() ?: return
+    private fun handle(socket: Socket) {
+        socket.use {
+        val line = it.getInputStream().bufferedReader().readLine() ?: return@use
         val parts = line.split(" ")
         if (parts.size < 2 || !tokens.containsKey(parts[0])) {
-            it.getOutputStream().writer().apply { write("ERROR unauthorized\n"); flush() }; return
+            it.getOutputStream().writer().apply { write("ERROR unauthorized\n"); flush() }; return@use
         }
         val result = when (parts.drop(1).joinToString(" ")) {
             "network status", "network local-ip", "ip", "ip addr" -> networkStatus()
@@ -52,6 +53,7 @@ class AndroidCtlBridge(private val context: Context) {
             else -> "ERROR unsupported command"
         }
         it.getOutputStream().writer().apply { write("$result\n"); flush() }
+        }
     }
 
     private fun networkStatus(): String {
