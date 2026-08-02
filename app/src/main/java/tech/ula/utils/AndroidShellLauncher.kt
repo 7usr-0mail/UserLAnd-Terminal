@@ -137,6 +137,26 @@ class AndroidShellLauncher(
         return rc
     }
 
+    /** Launch a selected Linux filesystem directly in TerminalSession's PTY. */
+    fun createProotSession(callback: TerminalSession.SessionChangedCallback, filesystemId: Long): TerminalSession? {
+        return try {
+            val rootfs = File(context.filesDir, filesystemId.toString())
+            val env = buildEnvironment().toMutableList()
+            env += "ROOT_PATH=${context.filesDir.absolutePath}"
+            env += "ROOTFS_PATH=${rootfs.absolutePath}"
+            env += "LIB_PATH=${ulaFiles.supportDir.absolutePath}"
+            env += "LD_LIBRARY_PATH=${ulaFiles.supportDir.absolutePath}"
+            env += "PROOT_DEBUG_LEVEL=-1"
+            env += "EXTRA_BINDINGS=-b ${ulaFiles.emulatedUserDir.absolutePath}:/storage/internal"
+            env += "OS_VERSION=${System.getProperty("os.version") ?: ""}"
+            val session = TerminalSession(ulaFiles.busybox.absolutePath, rootfs.absolutePath,
+                    arrayOf("busybox", "sh", File(ulaFiles.supportDir, "execInProot.sh").absolutePath,
+                            "/bin/bash", "-i"), env.toTypedArray(), callback)
+            session.updateSize(80, 24)
+            session
+        } catch (err: Exception) { null }
+    }
+
     /**
      * Creates the terminal session. Returns null if no shell could be started.
      */

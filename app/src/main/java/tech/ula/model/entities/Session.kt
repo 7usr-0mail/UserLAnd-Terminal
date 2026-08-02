@@ -6,9 +6,9 @@ import kotlinx.android.parcel.Parcelize
 
 fun String.toServiceType(): ServiceType {
     return when (this) {
+        "local" -> ServiceType.Local
         "ssh" -> ServiceType.Ssh
         "vnc" -> ServiceType.Vnc
-        "xsdl" -> ServiceType.Xsdl
         else -> ServiceType.Unselected
     }
 }
@@ -19,6 +19,11 @@ sealed class ServiceType : Parcelable {
         override fun toString(): String {
             return "unselected"
         }
+    }
+
+    @Parcelize
+    object Local : ServiceType() {
+        override fun toString(): String = "local"
     }
 
     @Parcelize

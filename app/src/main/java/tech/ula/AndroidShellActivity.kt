@@ -30,6 +30,7 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
 
     private lateinit var terminalView: TerminalView
     private var session: TerminalSession? = null
+    private val localFilesystemId by lazy { intent.getLongExtra("localFilesystemId", -1) }
 
     private val ulaFiles by lazy { UlaFiles(this, this.applicationInfo.nativeLibraryDir) }
     private val launcher by lazy { AndroidShellLauncher(this, ulaFiles) }
@@ -75,7 +76,8 @@ class AndroidShellActivity : AppCompatActivity(), TerminalSession.SessionChanged
     }
 
     private fun startShell() {
-        val result = launcher.createSession(this)
+        val result = if (localFilesystemId >= 0) launcher.createProotSession(this, localFilesystemId)
+                else launcher.createSession(this)
         if (result == null) {
             AlertDialog.Builder(this)
                     .setTitle(R.string.android_shell_failed_title)

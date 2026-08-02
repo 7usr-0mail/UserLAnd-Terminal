@@ -132,6 +132,12 @@ class ServerService : Service(), CoroutineScope {
         LocalSessionTrace.append(this, "START session=${session.name} fs=${session.filesystemId} user=${session.username} port=${session.port}")
         androidCtlBridge.provision(session.filesystemId, File(filesDir, "${session.filesystemId}/support"), session.username)
         startForeground(NotificationConstructor.serviceNotificationId, notificationManager.buildPersistentServiceNotification())
+        if (session.serviceType == ServiceType.Local) {
+            session.active = true
+            updateSession(session)
+            startClient(session)
+            return
+        }
         session.pid = localServerManager.startServer(session)
 
         // Previously this loop had no exit condition. If the server binary was
@@ -182,12 +188,21 @@ class ServerService : Service(), CoroutineScope {
 
     private fun startClient(session: Session) {
         when (session.serviceType) {
+            ServiceType.Local -> startLocalClient(session)
             ServiceType.Ssh -> startSshClient(session)
             ServiceType.Vnc -> startVncClient(session, "com.iiordanov.freebVNC")
             ServiceType.Xsdl -> startXsdlClient("x.org.server")
             else -> sendDialogBroadcast("unhandledSessionServiceType")
         }
         sendSessionActivatedBroadcast()
+    }
+
+    private fun startLocalClient(session: Session) {
+        val intent = Intent(this, AndroidShellActivity::class.java)
+                .putExtra("localFilesystemId", session.filesystemId)
+                .putExtra("localSessionName", session.name)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        startActivity(intent)
     }
 
     private fun startSshClient(session: Session) {
