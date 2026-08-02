@@ -201,6 +201,7 @@ class ServerService : Service(), CoroutineScope {
         val intent = Intent(this, AndroidShellActivity::class.java)
                 .putExtra("localFilesystemId", session.filesystemId)
                 .putExtra("localSessionName", session.name)
+                .putExtra("localUsername", session.username)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         startActivity(intent)
     }
