@@ -112,10 +112,8 @@ public final class TermuxService extends Service implements SessionChangedCallba
             for (int i = 0; i < mTerminalSessions.size(); i++)
                 mTerminalSessions.get(i).finishIfRunning();
             stopSelf();
-            Intent returnIntent = new Intent(this, tech.ula.MainActivity.class)
-                .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                .setType("sessionList");
-            startActivity(returnIntent);
+            // The embedded activity finishes when its sessions end, revealing
+            // the UserLAnd Sessions screen already beneath it in the task.
         } else if (ACTION_LOCK_WAKE.equals(action)) {
             if (mWakeLock == null) {
                 PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
