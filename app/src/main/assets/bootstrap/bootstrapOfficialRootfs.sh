@@ -237,6 +237,48 @@ setup_profile() {
 }
 
 # ---------------------------------------------------------------------------
+# 6. Preserve each distribution's native interactive prompt conventions.
+# ---------------------------------------------------------------------------
+setup_native_prompt() {
+    case "$DISTRO" in
+        ubuntu|debian)
+            # Canonical/Debian's own skel bashrc already supplies the genuine
+            # green user@host and blue path prompt; it merely ships color opt-in.
+            for rc in "/home/$INITIAL_USERNAME/.bashrc" /root/.bashrc; do
+                [ -f "$rc" ] && sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' "$rc"
+            done
+            ;;
+        kali)
+            # NetHunter/ARM uses Bash (not the desktop Zsh theme). Keep its
+            # native Bash layout but enable ANSI colour in this capable terminal.
+            for rc in "/home/$INITIAL_USERNAME/.bashrc" /root/.bashrc; do
+                [ -f "$rc" ] && sed -i 's/^#force_color_prompt=yes/force_color_prompt=yes/' "$rc"
+            done
+            ;;
+        arch)
+            # Arch's intentionally minimal stock skeleton form.
+            for home in "/home/$INITIAL_USERNAME" /root; do
+                rc="$home/.bashrc"
+                [ -f "$rc" ] || : > "$rc"
+                grep -q 'UserLAnd Terminal Arch prompt' "$rc" 2>/dev/null || cat >> "$rc" <<-'EOF'
+
+# UserLAnd Terminal Arch prompt
+PS1='[\u@\h \W]\$ '
+alias ls='ls --color=auto'
+EOF
+            done
+            ;;
+        alpine)
+            # BusyBox ash's normal compact hostname:path prompt.
+            cat > /etc/profile.d/terminal-alpine-prompt.sh <<-'EOF'
+# UserLAnd Terminal Alpine prompt
+[ -n "$PS1" ] && PS1='\h:\w\$ '
+EOF
+            ;;
+    esac
+}
+
+# ---------------------------------------------------------------------------
 # Run.
 # ---------------------------------------------------------------------------
 setup_base_files
@@ -244,6 +286,7 @@ setup_package_mirror
 setup_apt_for_proot
 setup_user
 setup_profile
+setup_native_prompt
 
 # The session cannot start without an SSH server, so this determines the exit
 # status. Anything above is best-effort; this is the hard requirement.
