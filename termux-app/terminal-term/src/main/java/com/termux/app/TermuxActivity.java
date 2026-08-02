@@ -489,7 +489,7 @@ public final class TermuxActivity extends Activity implements ServiceConnection 
                 } else {
                     removeFinishedSession(sessionAtRow);
                 }
-                int color = sessionRunning || sessionAtRow.getExitStatus() == 0 ? Color.BLACK : Color.RED;
+                int color = sessionRunning || sessionAtRow.getExitStatus() == 0 ? Color.rgb(0, 255, 65) : Color.rgb(255, 80, 80);
                 firstLineView.setTextColor(color);
                 return row;
             }
